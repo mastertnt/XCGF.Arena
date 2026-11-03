@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 using XCGF.Arena.Components;
 using XCGF.Arena.Data;
 
@@ -35,13 +36,13 @@ public sealed class MoveToBehavior : ITaskBehavior
     {
         ArgumentNullException.ThrowIfNull(pContext);
         TaskInstance lTask = pContext.Task;
-        Ecs.Entity lExecutor = lTask.Parameters.GetValueOrDefault("Executor") is ReferenceValue lReference ? lReference.Target : pContext.Carrier;
-        if (!pContext.World.Has<Kinematic>(lExecutor) || lTask.Parameters.GetValueOrDefault("Destination") is not { } lDestinationValue)
+        Entity lExecutor = lTask.Parameters.GetValueOrDefault("Executor") is ReferenceValue lReference ? lReference.Target : pContext.Carrier;
+        if (lExecutor.IsNull || !lExecutor.HasComponent<Kinematic>() || lTask.Parameters.GetValueOrDefault("Destination") is not { } lDestinationValue)
         {
             return;
         }
 
-        ref Kinematic lKinematic = ref pContext.World.Get<Kinematic>(lExecutor);
+        ref Kinematic lKinematic = ref lExecutor.GetComponent<Kinematic>();
         GeoPosition lDestination = GeoPosition.FromValue(lDestinationValue);
         lKinematic.Orientation = lKinematic.Orientation with
         {

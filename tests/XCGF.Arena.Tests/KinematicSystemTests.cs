@@ -1,17 +1,19 @@
+using Friflo.Engine.ECS;
+using Friflo.Engine.ECS.Systems;
 using XCGF.Arena.Components;
-using XCGF.Arena.Ecs;
 using XCGF.Arena.Systems;
 
 namespace XCGF.Arena.Tests;
 
 public class KinematicSystemTests
 {
-    private readonly World mWorld = new World();
-    private readonly Simulation mSimulation;
+    private readonly EntityStore mStore = new EntityStore();
+    private readonly SystemRoot mSystems;
+    private float mElapsed;
 
     public KinematicSystemTests()
     {
-        mSimulation = new Simulation(mWorld).AddSystem(new KinematicSystem());
+        mSystems = new SystemRoot(mStore) { new KinematicSystem() };
     }
 
     [Fact]
@@ -19,9 +21,9 @@ public class KinematicSystemTests
     {
         Entity lEntity = Spawn(new Orientation(90, 0, 0), 250, new KinematicLimits(null, null, null));
 
-        mSimulation.Run(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(1));
+        Run(10);
 
-        Kinematic lKinematic = mWorld.Get<Kinematic>(lEntity);
+        Kinematic lKinematic = lEntity.GetComponent<Kinematic>();
         Assert.Equal(2500, GeoMath.Distance(new GeoPosition(0, 0, 1000), lKinematic.Position), 3);
         Assert.Equal(0, lKinematic.Position.Latitude, 6);
         Assert.True(lKinematic.Position.Longitude > 0);
@@ -35,10 +37,10 @@ public class KinematicSystemTests
         Entity lTooSlow = Spawn(default, 10, lLimits);
         Entity lTooFast = Spawn(default, 900, lLimits);
 
-        mSimulation.Step(TimeSpan.FromSeconds(1));
+        Step(1);
 
-        Assert.Equal(60, mWorld.Get<Kinematic>(lTooSlow).Speed);
-        Assert.Equal(600, mWorld.Get<Kinematic>(lTooFast).Speed);
+        Assert.Equal(60, lTooSlow.GetComponent<Kinematic>().Speed);
+        Assert.Equal(600, lTooFast.GetComponent<Kinematic>().Speed);
     }
 
     [Fact]
@@ -46,11 +48,11 @@ public class KinematicSystemTests
     {
         Entity lEntity = Spawn(new Orientation(0, 30, 0), 200, new KinematicLimits(null, null, 1500));
 
-        mSimulation.Step(TimeSpan.FromSeconds(2));
-        Assert.Equal(1200, mWorld.Get<Kinematic>(lEntity).Position.Altitude, 6);
+        Step(2);
+        Assert.Equal(1200, lEntity.GetComponent<Kinematic>().Position.Altitude, 6);
 
-        mSimulation.Run(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(1));
-        Assert.Equal(1500, mWorld.Get<Kinematic>(lEntity).Position.Altitude);
+        Run(10);
+        Assert.Equal(1500, lEntity.GetComponent<Kinematic>().Position.Altitude);
     }
 
     [Fact]
@@ -67,9 +69,23 @@ public class KinematicSystemTests
 
     private Entity Spawn(Orientation pOrientation, double pSpeed, KinematicLimits pLimits)
     {
-        Entity lEntity = mWorld.CreateEntity();
-        mWorld.Set(lEntity, new Kinematic(new GeoPosition(0, 0, 1000), pOrientation, pSpeed));
-        mWorld.Set(lEntity, pLimits);
+        Entity lEntity = mStore.CreateEntity();
+        lEntity.AddComponent(new Kinematic(new GeoPosition(0, 0, 1000), pOrientation, pSpeed));
+        lEntity.AddComponent(pLimits);
         return lEntity;
+    }
+
+    private void Step(float pSeconds)
+    {
+        mElapsed += pSeconds;
+        mSystems.Update(new UpdateTick(pSeconds, mElapsed));
+    }
+
+    private void Run(int pSteps)
+    {
+        for (int lIndex = 0; lIndex < pSteps; lIndex++)
+        {
+            Step(1);
+        }
     }
 }

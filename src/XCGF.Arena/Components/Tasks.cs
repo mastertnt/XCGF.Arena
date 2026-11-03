@@ -1,3 +1,4 @@
+using Friflo.Engine.ECS;
 using XCGF.Arena.Data;
 
 namespace XCGF.Arena.Components;
@@ -85,10 +86,14 @@ public sealed class TaskInstance
 /// <summary>
 /// Tasks assigned to a carrier, ended ones included, in assignment order.
 /// </summary>
-public sealed class AssignedTasks
+/// <param name="Items">The tasks.</param>
+public record struct AssignedTasks(List<TaskInstance> Items) : IComponent
 {
     /// <summary>
-    /// Gets the tasks.
+    /// Initializes a new instance of the <see cref="AssignedTasks"/> struct, with no task.
     /// </summary>
-    public List<TaskInstance> Items { get; } = new List<TaskInstance>();
+    public AssignedTasks()
+        : this(new List<TaskInstance>())
+    {
+    }
 }

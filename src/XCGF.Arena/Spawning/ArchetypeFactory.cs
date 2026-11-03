@@ -1,19 +1,19 @@
+using Friflo.Engine.ECS;
 using XCGF.Arena.Components;
 using XCGF.Arena.Data;
-using XCGF.Arena.Ecs;
 
 namespace XCGF.Arena.Spawning;
 
 /// <summary>
-/// Builds entities and units of a world from the archetypes of a library.
+/// Builds the entities and units of an <see cref="EntityStore"/> from the archetypes of a library.
 /// </summary>
 /// <remarks>
 /// An entity archetype becomes one entity with <see cref="EntityIdentity"/>, <see cref="Kinematic"/>,
-/// <see cref="KinematicLimits"/>, <see cref="EntityParameters"/>, <see cref="Equipments"/>,
-/// <see cref="TaskCapabilities"/> and <see cref="AssignedTasks"/>. Each of its equipments, the kinematic included,
-/// becomes a child entity with <see cref="Equipment"/>, <see cref="EquipmentData"/> and its own
-/// <see cref="TaskCapabilities"/>. A unit archetype becomes an entity with <see cref="Unit"/> whose members are
-/// spawned with it and marked with <see cref="UnitMembership"/>.
+/// <see cref="KinematicLimits"/>, <see cref="EntityParameters"/>, <see cref="TaskCapabilities"/> and
+/// <see cref="AssignedTasks"/>. Each of its equipments, the kinematic included, becomes a child entity with
+/// <see cref="Equipment"/>, <see cref="EquipmentData"/> and its own <see cref="TaskCapabilities"/>. A unit archetype
+/// becomes an entity with <see cref="Unit"/> whose members are spawned with it as child entities carrying
+/// <see cref="UnitMembership"/>.
 /// </remarks>
 public sealed class ArchetypeFactory
 {
@@ -22,19 +22,19 @@ public sealed class ArchetypeFactory
     /// </summary>
     public const string KinematicEquipment = ArchetypeLibrary.RootKinematic;
 
-    private readonly World mWorld;
+    private readonly EntityStore mStore;
     private readonly ArchetypeLibrary mLibrary;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ArchetypeFactory"/> class.
     /// </summary>
-    /// <param name="pWorld">The world the instances are created in.</param>
+    /// <param name="pStore">The store the instances are created in.</param>
     /// <param name="pLibrary">The archetypes.</param>
-    public ArchetypeFactory(World pWorld, ArchetypeLibrary pLibrary)
+    public ArchetypeFactory(EntityStore pStore, ArchetypeLibrary pLibrary)
     {
-        ArgumentNullException.ThrowIfNull(pWorld);
+        ArgumentNullException.ThrowIfNull(pStore);
         ArgumentNullException.ThrowIfNull(pLibrary);
-        mWorld = pWorld;
+        mStore = pStore;
         mLibrary = pLibrary;
     }
 
@@ -72,34 +72,33 @@ public sealed class ArchetypeFactory
                 $"Entity '{lArchetype.Name}' has no data item {string.Join(", ", lOverrides.Keys.Select(pKey => $"'{pKey}'"))}.");
         }
 
-        Entity lEntity = mWorld.CreateEntity();
-        Dictionary<string, Entity> lByName = new Dictionary<string, Entity>();
+        Entity lEntity = mStore.CreateEntity();
         Dictionary<string, TaskCapability> lCapabilities = new Dictionary<string, TaskCapability>();
         foreach ((EquipmentArchetype lEquipmentArchetype, ResolvedEquipment lResolved, EquipmentData lData) in lEquipments)
         {
-            Entity lEquipment = mWorld.CreateEntity();
-            mWorld.Set(lEquipment, new Equipment(lEntity, lResolved.Name, lResolved.Definition, lResolved.Type, lResolved.IsKinematic));
-            mWorld.Set(lEquipment, lData);
+            string lName = lEquipmentArchetype == lArchetype.Kinematic ? KinematicEquipment : lResolved.Name;
+            Entity lEquipment = mStore.CreateEntity();
+            lEquipment.AddComponent(new Equipment(lName, lResolved.Definition, lResolved.Type, lResolved.IsKinematic));
+            lEquipment.AddComponent(lData);
             Dictionary<string, TaskCapability> lEquipmentCapabilities = new Dictionary<string, TaskCapability>();
             AddCapabilities(lEquipmentCapabilities, lResolved.Tasks, lEquipment);
-            mWorld.Set(lEquipment, new TaskCapabilities(lEquipmentCapabilities));
+            lEquipment.AddComponent(new TaskCapabilities(lEquipmentCapabilities));
             AddCapabilities(lCapabilities, lResolved.Tasks, lEquipment);
-            lByName.Add(lEquipmentArchetype == lArchetype.Kinematic ? KinematicEquipment : lResolved.Name, lEquipment);
+            lEntity.AddChild(lEquipment);
         }
 
         // The entity's own task references override those its equipments bring.
         AddCapabilities(lCapabilities, lArchetype.Tasks, lEntity);
         EquipmentData lKinematicData = lEquipments[0].Data;
-        mWorld.Set(lEntity, new EntityIdentity(lArchetype.Name, lArchetype.DisType, lArchetype.Environment, lArchetype.Folder));
-        mWorld.Set(lEntity, BuildKinematic(lKinematicData));
-        mWorld.Set(lEntity, new KinematicLimits(
+        lEntity.AddComponent(new EntityIdentity(lArchetype.Name, lArchetype.DisType, lArchetype.Environment, lArchetype.Folder));
+        lEntity.AddComponent(BuildKinematic(lKinematicData));
+        lEntity.AddComponent(new KinematicLimits(
             lKinematicData.Technological.GetNumber("StallSpeed"),
             lKinematicData.Technological.GetNumber("MaxSpeed"),
             lKinematicData.Technological.GetNumber("Ceiling")));
-        mWorld.Set(lEntity, new EntityParameters(lParameters));
-        mWorld.Set(lEntity, new Equipments(lByName));
-        mWorld.Set(lEntity, new TaskCapabilities(lCapabilities));
-        mWorld.Set(lEntity, new AssignedTasks());
+        lEntity.AddComponent(new EntityParameters(lParameters));
+        lEntity.AddComponent(new TaskCapabilities(lCapabilities));
+        lEntity.AddComponent(new AssignedTasks());
         return lEntity;
     }
 
@@ -111,59 +110,23 @@ public sealed class ArchetypeFactory
     public Entity SpawnUnit(string pArchetype)
     {
         UnitArchetype lArchetype = mLibrary.GetUnit(pArchetype);
-        List<UnitMemberInstance> lMembers = new List<UnitMemberInstance>();
+        Entity lUnit = mStore.CreateEntity();
         foreach (UnitMember lMember in lArchetype.Members)
         {
             for (int lIndex = 0; lIndex < lMember.Count; lIndex++)
             {
                 Entity lInstance = lMember.IsUnit ? SpawnUnit(lMember.Archetype) : SpawnEntity(lMember.Archetype);
-                lMembers.Add(new UnitMemberInstance(lInstance, lMember.Role, lMember.IsUnit));
+                lInstance.AddComponent(new UnitMembership(lMember.Role));
+                lUnit.AddChild(lInstance);
             }
-        }
-
-        Entity lUnit = mWorld.CreateEntity();
-        foreach (UnitMemberInstance lMember in lMembers)
-        {
-            mWorld.Set(lMember.Instance, new UnitMembership(lUnit, lMember.Role));
         }
 
         Dictionary<string, TaskCapability> lCapabilities = new Dictionary<string, TaskCapability>();
         AddCapabilities(lCapabilities, lArchetype.Tasks, lUnit);
-        mWorld.Set(lUnit, new Unit(lArchetype.Name, lArchetype.Folder, lMembers));
-        mWorld.Set(lUnit, new TaskCapabilities(lCapabilities));
-        mWorld.Set(lUnit, new AssignedTasks());
+        lUnit.AddComponent(new Unit(lArchetype.Name, lArchetype.Folder));
+        lUnit.AddComponent(new TaskCapabilities(lCapabilities));
+        lUnit.AddComponent(new AssignedTasks());
         return lUnit;
-    }
-
-    /// <summary>
-    /// Destroys an entity or a unit together with its equipments and, for a unit, its members.
-    /// </summary>
-    /// <param name="pInstance">The entity or unit.</param>
-    /// <returns>True if the instance was alive.</returns>
-    public bool Despawn(Entity pInstance)
-    {
-        if (!mWorld.IsAlive(pInstance))
-        {
-            return false;
-        }
-
-        if (mWorld.TryGet(pInstance, out Unit lUnit))
-        {
-            foreach (UnitMemberInstance lMember in lUnit.Members)
-            {
-                Despawn(lMember.Instance);
-            }
-        }
-
-        if (mWorld.TryGet(pInstance, out Equipments lEquipments))
-        {
-            foreach (Entity lEquipment in lEquipments.ByName.Values)
-            {
-                mWorld.DestroyEntity(lEquipment);
-            }
-        }
-
-        return mWorld.DestroyEntity(pInstance);
     }
 
     private EquipmentData BuildEquipmentData(ResolvedEquipment pEquipment, Dictionary<string, DataValue> pOverrides)

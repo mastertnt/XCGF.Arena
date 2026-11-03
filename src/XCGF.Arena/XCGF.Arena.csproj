@@ -3,4 +3,9 @@
     <RootNamespace>XCGF.Arena</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Friflo.Engine.ECS" Version="3.6.0" />
+    <PackageReference Include="GeographicLib.NET" Version="2.3.2" />
+  </ItemGroup>
 </Project>

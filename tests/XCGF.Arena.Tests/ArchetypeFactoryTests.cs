@@ -1,18 +1,18 @@
+using Friflo.Engine.ECS;
 using XCGF.Arena.Components;
 using XCGF.Arena.Data;
-using XCGF.Arena.Ecs;
 using XCGF.Arena.Spawning;
 
 namespace XCGF.Arena.Tests;
 
 public class ArchetypeFactoryTests
 {
-    private readonly World mWorld = new World();
+    private readonly EntityStore mStore = new EntityStore();
     private readonly ArchetypeFactory mFactory;
 
     public ArchetypeFactoryTests()
     {
-        mFactory = new ArchetypeFactory(mWorld, TestLibrary.Example);
+        mFactory = new ArchetypeFactory(mStore, TestLibrary.Example);
     }
 
     [Fact]
@@ -20,9 +20,9 @@ public class ArchetypeFactoryTests
     {
         Entity lFighter = mFactory.SpawnEntity("Fighter");
 
-        Assert.Equal(new EntityIdentity("Fighter", "1.2.71.1.0.0.0", EntityEnvironment.Air, "Aircraft/Fighter"), mWorld.Get<EntityIdentity>(lFighter));
-        Assert.Equal(250, mWorld.Get<Kinematic>(lFighter).Speed);
-        Assert.Equal(new KinematicLimits(60, 600, 15000), mWorld.Get<KinematicLimits>(lFighter));
+        Assert.Equal(new EntityIdentity("Fighter", "1.2.71.1.0.0.0", EntityEnvironment.Air, "Aircraft/Fighter"), lFighter.GetComponent<EntityIdentity>());
+        Assert.Equal(250, lFighter.GetComponent<Kinematic>().Speed);
+        Assert.Equal(new KinematicLimits(60, 600, 15000), lFighter.GetComponent<KinematicLimits>());
     }
 
     [Fact]
@@ -30,23 +30,24 @@ public class ArchetypeFactoryTests
     {
         Entity lFighter = mFactory.SpawnEntity("Fighter");
 
-        Equipments lEquipments = mWorld.Get<Equipments>(lFighter);
-        Assert.Equal(new[] { "Kinematic", "Missile_1", "Missile_2", "Radar" }, lEquipments.ByName.Keys.Order());
-        Assert.Equal(5, mWorld.EntityCount);
+        Assert.Equal(new[] { "Kinematic", "Radar", "Missile_1", "Missile_2" }, lFighter.GetEquipments().Select(pEquipment => pEquipment.GetComponent<Equipment>().Name));
+        Assert.Equal(5, mStore.Count);
 
-        Entity lRadar = lEquipments.ByName["Radar"];
-        Assert.Equal(new Equipment(lFighter, "Radar", "FighterRadar", "Radar", false), mWorld.Get<Equipment>(lRadar));
-        EquipmentData lRadarData = mWorld.Get<EquipmentData>(lRadar);
+        Entity lRadar = lFighter.FindEquipment("Radar");
+        Assert.Equal(lFighter, lRadar.Parent);
+        Assert.Equal(new Equipment("Radar", "FighterRadar", "Radar", false), lRadar.GetComponent<Equipment>());
+        EquipmentData lRadarData = lRadar.GetComponent<EquipmentData>();
         Assert.Equal(new NumberValue(150000), lRadarData.Technological.Get("MaxRange"));
         Assert.Equal(new EnumValue("Search", 1), lRadarData.Initialization.Get("Mode"));
 
-        EquipmentData lMissileData = mWorld.Get<EquipmentData>(lEquipments.ByName["Missile_2"]);
+        EquipmentData lMissileData = lFighter.FindEquipment("Missile_2").GetComponent<EquipmentData>();
         Assert.Equal(new EnumValue("HLAtrue", 1), lMissileData.Initialization.Get("Armed"));
-        Assert.NotSame(mWorld.Get<EquipmentData>(lEquipments.ByName["Missile_1"]), lMissileData);
+        Assert.NotSame(lFighter.FindEquipment("Missile_1").GetComponent<EquipmentData>().Initialization, lMissileData.Initialization);
+        Assert.True(lFighter.FindEquipment("Missile_3").IsNull);
 
-        Equipment lKinematic = mWorld.Get<Equipment>(lEquipments.ByName["Kinematic"]);
-        Assert.True(lKinematic.IsKinematic);
-        EquipmentData lKinematicData = mWorld.Get<EquipmentData>(lEquipments.ByName["Kinematic"]);
+        Entity lKinematicEquipment = lFighter.FindEquipment("Kinematic");
+        Assert.True(lKinematicEquipment.GetComponent<Equipment>().IsKinematic);
+        EquipmentData lKinematicData = lKinematicEquipment.GetComponent<EquipmentData>();
         Assert.Equal(new[] { "Position", "Orientation", "InitialSpeed" }, lKinematicData.Initialization.Items.Keys);
         Assert.Null(lKinematicData.Initialization.Get("Position"));
     }
@@ -56,10 +57,10 @@ public class ArchetypeFactoryTests
     {
         Entity lFighter = mFactory.SpawnEntity("Fighter");
 
-        TaskCapabilities lCapabilities = mWorld.Get<TaskCapabilities>(lFighter);
+        TaskCapabilities lCapabilities = lFighter.GetComponent<TaskCapabilities>();
         Assert.Equal(new[] { "FireOnTarget", "FollowFlightPlan", "MoveTo" }, lCapabilities.ByTask.Keys.Order());
         Assert.All(lCapabilities.ByTask.Values, pCapability => Assert.Equal(lFighter, pCapability.Provider));
-        Assert.Empty(mWorld.Get<AssignedTasks>(lFighter).Items);
+        Assert.Empty(lFighter.GetComponent<AssignedTasks>().Items);
     }
 
     [Fact]
@@ -75,9 +76,9 @@ public class ArchetypeFactoryTests
 
         Entity lFighter = mFactory.SpawnEntity("Fighter", lOverrides);
 
-        Assert.Equal(new Kinematic(new GeoPosition(48.7, 2.1, 3000), new Orientation(90, 0, 0), 300), mWorld.Get<Kinematic>(lFighter));
-        Entity lRadar = mWorld.Get<Equipments>(lFighter).ByName["Radar"];
-        Assert.Equal(new EnumValue("Off", 0), mWorld.Get<EquipmentData>(lRadar).Initialization.Get("Mode"));
+        Assert.Equal(new Kinematic(new GeoPosition(48.7, 2.1, 3000), new Orientation(90, 0, 0), 300), lFighter.GetComponent<Kinematic>());
+        Entity lRadar = lFighter.FindEquipment("Radar");
+        Assert.Equal(new EnumValue("Off", 0), lRadar.GetComponent<EquipmentData>().Initialization.Get("Mode"));
     }
 
     [Theory]
@@ -92,7 +93,7 @@ public class ArchetypeFactoryTests
         XcgfDataException lError = Assert.Throws<XcgfDataException>(() => mFactory.SpawnEntity("Fighter", lOverrides));
 
         Assert.Contains(pExpected, lError.Message);
-        Assert.Equal(0, mWorld.EntityCount);
+        Assert.Equal(0, mStore.Count);
     }
 
     [Fact]
@@ -116,8 +117,8 @@ public class ArchetypeFactoryTests
 
         Entity lFighter = mFactory.SpawnEntity("Fighter", lOverrides);
 
-        Assert.Equal(700, mWorld.Get<Kinematic>(lFighter).Speed);
-        Assert.Equal(800, mWorld.Get<KinematicLimits>(lFighter).MaxSpeed);
+        Assert.Equal(700, lFighter.GetComponent<Kinematic>().Speed);
+        Assert.Equal(800, lFighter.GetComponent<KinematicLimits>().MaxSpeed);
     }
 
     [Fact]
@@ -128,7 +129,7 @@ public class ArchetypeFactoryTests
         XcgfDataException lError = Assert.Throws<XcgfDataException>(() => mFactory.SpawnEntity("Fighter", lOverrides));
 
         Assert.Contains("'Radar.Power'", lError.Message);
-        Assert.Equal(0, mWorld.EntityCount);
+        Assert.Equal(0, mStore.Count);
     }
 
     [Fact]
@@ -142,17 +143,17 @@ public class ArchetypeFactoryTests
     {
         Entity lPatrol = mFactory.SpawnUnit("FighterPatrol");
 
-        Unit lUnit = mWorld.Get<Unit>(lPatrol);
-        Assert.Equal("FighterPatrol", lUnit.Archetype);
-        Assert.Equal(new[] { "Leader", "Wingman" }, lUnit.Members.Select(pMember => pMember.Role));
-        Assert.All(lUnit.Members, pMember =>
+        Assert.Equal(new Unit("FighterPatrol", "Air"), lPatrol.GetComponent<Unit>());
+        Entity[] lMembers = lPatrol.GetMembers().ToArray();
+        Assert.Equal(new[] { "Leader", "Wingman" }, lMembers.Select(pMember => pMember.GetComponent<UnitMembership>().Role));
+        Assert.All(lMembers, pMember =>
         {
-            Assert.Equal("Fighter", mWorld.Get<EntityIdentity>(pMember.Instance).Archetype);
-            Assert.Equal(new UnitMembership(lPatrol, pMember.Role), mWorld.Get<UnitMembership>(pMember.Instance));
+            Assert.Equal("Fighter", pMember.GetComponent<EntityIdentity>().Archetype);
+            Assert.Equal(lPatrol, pMember.Parent);
         });
-        Assert.Equal(11, mWorld.EntityCount);
+        Assert.Equal(11, mStore.Count);
 
-        TaskCapability lChangeFormation = mWorld.Get<TaskCapabilities>(lPatrol).ByTask["ChangeFormation"];
+        TaskCapability lChangeFormation = lPatrol.GetComponent<TaskCapabilities>().ByTask["ChangeFormation"];
         Assert.Equal("Line", lChangeFormation.Defaults.Single().DefaultValue);
     }
 
@@ -180,26 +181,26 @@ public class ArchetypeFactoryTests
         lExtended.Add(lLibrary.GetUnit("FighterPatrol"));
         lExtended.Add(new UnitArchetype("Squadron", null, null, new[] { new UnitMember("FighterPatrol", true, 2, "Patrol") }, Array.Empty<TaskRef>()));
         Assert.Empty(lExtended.Validate());
-        ArchetypeFactory lFactory = new ArchetypeFactory(mWorld, lExtended);
+        ArchetypeFactory lFactory = new ArchetypeFactory(mStore, lExtended);
 
         Entity lSquadron = lFactory.SpawnUnit("Squadron");
 
-        Assert.Equal(2, mWorld.Get<Unit>(lSquadron).Members.Count);
-        Assert.Equal(4, mWorld.Query<EntityIdentity>().Count);
-        Assert.Equal(3, mWorld.Query<Unit>().Count);
+        Assert.Equal(2, lSquadron.GetMembers().Count());
+        Assert.Equal(4, mStore.Query<EntityIdentity>().Count);
+        Assert.Equal(3, mStore.Query<Unit>().Count);
     }
 
     [Fact]
-    public void Despawn_Unit_DestroysMembersAndEquipments()
+    public void DeleteTree_Unit_DeletesMembersAndEquipments()
     {
         Entity lPatrol = mFactory.SpawnUnit("FighterPatrol");
         Entity lOther = mFactory.SpawnEntity("Fighter");
 
-        Assert.True(mFactory.Despawn(lPatrol));
+        lPatrol.DeleteTree();
 
-        Assert.Equal(5, mWorld.EntityCount);
-        Assert.True(mWorld.IsAlive(lOther));
-        Assert.All(mWorld.Query<Equipment>(), pEquipment => Assert.Equal(lOther, mWorld.Get<Equipment>(pEquipment).Owner));
-        Assert.False(mFactory.Despawn(lPatrol));
+        Assert.Equal(5, mStore.Count);
+        Assert.False(lOther.IsNull);
+        Assert.All(mStore.Query<Equipment>().Entities.ToArray(), pEquipment => Assert.Equal(lOther, pEquipment.Parent));
     }
+
 }

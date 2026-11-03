@@ -1,5 +1,5 @@
 using System.Globalization;
-using XCGF.Arena.Ecs;
+using Friflo.Engine.ECS;
 
 namespace XCGF.Arena.Data;
 

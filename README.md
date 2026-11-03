@@ -26,45 +26,44 @@ dotnet test
 dotnet run --project src/XCGF.Arena.Console
 ```
 
-## ECS for the XCGF.Data models
+## XCGF.Data components on Friflo.Engine.ECS
 
-XCGF.Arena is an Entity Component System that instantiates the archetypes described by
-[XCGF.Data](https://github.com/mastertnt/XCGF.Data).
+XCGF.Arena implements, as components and systems of [Friflo.Engine.ECS](https://github.com/friflo/Friflo.Engine.ECS),
+the archetypes described by [XCGF.Data](https://github.com/mastertnt/XCGF.Data). Geodesic computations use
+[GeographicLib.NET](https://github.com/noelex/GeographicLib.NET) on the WGS84 ellipsoid.
 
 | Namespace | Content |
 | --- | --- |
-| `XCGF.Arena.Ecs` | `World` (entities with generations, one component of each type per entity, queries), `ISystem`, `Simulation`. |
 | `XCGF.Arena.Data` | Archetype model, `XcgfDataLoader` (XML with `xi:include`), `ArchetypeLibrary` (derivation, default values, constraints, validation). |
-| `XCGF.Arena.Components` | Components built from the archetypes. |
-| `XCGF.Arena.Spawning` | `ArchetypeFactory`: spawns entities and units from their archetypes. |
-| `XCGF.Arena.Systems` | `KinematicSystem`, `TaskSystem` and the `MoveTo` behaviour. |
+| `XCGF.Arena.Components` | Friflo components built from the archetypes, hierarchy helpers. |
+| `XCGF.Arena.Spawning` | `ArchetypeFactory`: spawns entities and units into an `EntityStore`. |
+| `XCGF.Arena.Systems` | `KinematicSystem`, `TaskSystem` (Friflo `QuerySystem`s) and the `MoveTo` behaviour. |
+| `XCGF.Arena` | `ArenaSimulation`: store, factory, systems and simulation clock wired together. |
 
-How the models map to the ECS:
+How the models map to the components:
 
 - An **entity archetype** becomes an entity with `EntityIdentity`, `Kinematic` (position, orientation, speed),
-  `KinematicLimits` (stall speed, max speed, ceiling), `EntityParameters`, `Equipments`, `TaskCapabilities` and
-  `AssignedTasks`.
-- Each **equipment**, the kinematic included, becomes a child entity with `Equipment` (owner, name, definition) and
+  `KinematicLimits` (stall speed, max speed, ceiling), `EntityParameters`, `TaskCapabilities` and `AssignedTasks`.
+- Each **equipment**, the kinematic included, becomes a child entity with `Equipment` (name, definition, type) and
   `EquipmentData` (technological and initialization data, typed after their HLA data type).
-- A **unit archetype** becomes an entity with `Unit`; its members are spawned with it and carry `UnitMembership`.
+- A **unit archetype** becomes an entity with `Unit`; its members are spawned with it as child entities carrying
+  `UnitMembership`.
 - A **task** assigned with `TaskSystem.Assign` is a `TaskInstance` that goes from Pending to Running to Ended through
   its activation and exit triggers. `Immediate`, `AtTime`, `OnTaskEnd`, `OnPositionReached` and `OnEvent` are
   evaluated by the system; `OnCondition` and `CustomTrigger` need a handler registered on the system.
 
 ```csharp
 ArchetypeLibrary library = XcgfDataLoader.Load("external/XCGF.Data/examples/library/library.xml");
-World world = new World();
-ArchetypeFactory factory = new ArchetypeFactory(world, library);
-TaskSystem tasks = new TaskSystem(library);
-Simulation simulation = new Simulation(world).AddSystem(tasks).AddSystem(new KinematicSystem());
+ArenaSimulation arena = new ArenaSimulation(library);
 
-Entity fighter = factory.SpawnEntity("Fighter", new Dictionary<string, DataValue>
+Entity fighter = arena.Factory.SpawnEntity("Fighter", new Dictionary<string, DataValue>
 {
     ["Kinematic.Position"] = new GeoPosition(48.7, 2.1, 3000).ToValue(),
 });
-tasks.Assign(world, fighter, "MoveTo", new Dictionary<string, DataValue>
+arena.Tasks.Assign(fighter, "MoveTo", new Dictionary<string, DataValue>
 {
     ["Destination"] = RecordValue.Of(("Latitude", new NumberValue(48.9)), ("Longitude", new NumberValue(2.4))),
 });
-simulation.Run(TimeSpan.FromMinutes(10), TimeSpan.FromSeconds(1));
+arena.Run(TimeSpan.FromMinutes(10), TimeSpan.FromSeconds(1));
+Entity radar = fighter.FindEquipment("Radar");
 ```

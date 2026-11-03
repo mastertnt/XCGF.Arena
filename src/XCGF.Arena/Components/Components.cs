@@ -1,5 +1,5 @@
+using Friflo.Engine.ECS;
 using XCGF.Arena.Data;
-using XCGF.Arena.Ecs;
 
 namespace XCGF.Arena.Components;
 
@@ -10,15 +10,15 @@ namespace XCGF.Arena.Components;
 /// <param name="DisType">Dotted DIS entity type.</param>
 /// <param name="Environment">Environment the entity evolves in, if declared.</param>
 /// <param name="Folder">Folder of the archetype, if any.</param>
-public readonly record struct EntityIdentity(string Archetype, string DisType, EntityEnvironment? Environment, string? Folder);
+public record struct EntityIdentity(string Archetype, string DisType, EntityEnvironment? Environment, string? Folder) : IComponent;
 
 /// <summary>
-/// Kinematic state of an entity.
+/// Kinematic state of an entity, initialized from the initialization data of its kinematic.
 /// </summary>
 /// <param name="Position">Current position.</param>
 /// <param name="Orientation">Current attitude. The heading is the direction of travel.</param>
 /// <param name="Speed">Current speed, in metres per second.</param>
-public record struct Kinematic(GeoPosition Position, Orientation Orientation, double Speed);
+public record struct Kinematic(GeoPosition Position, Orientation Orientation, double Speed) : IComponent;
 
 /// <summary>
 /// Limits the kinematic system enforces, read from the technological data of the kinematic.
@@ -26,36 +26,29 @@ public record struct Kinematic(GeoPosition Position, Orientation Orientation, do
 /// <param name="StallSpeed">Lowest speed, in metres per second, or null for none.</param>
 /// <param name="MaxSpeed">Highest speed, in metres per second, or null for none.</param>
 /// <param name="Ceiling">Highest altitude, in metres, or null for none.</param>
-public readonly record struct KinematicLimits(double? StallSpeed, double? MaxSpeed, double? Ceiling);
+public record struct KinematicLimits(double? StallSpeed, double? MaxSpeed, double? Ceiling) : IComponent;
 
 /// <summary>
-/// Marks an entity of the world as an equipment carried by another entity.
+/// Equipment carried by an entity. The equipment entity is a child of its carrier.
 /// </summary>
-/// <param name="Owner">The carrier.</param>
 /// <param name="Name">Name of the equipment on its carrier.</param>
 /// <param name="Definition">Name of its definition, if any.</param>
 /// <param name="Type">Kind of equipment, e.g. Radar.</param>
 /// <param name="IsKinematic">Whether it is the kinematic of its carrier.</param>
-public readonly record struct Equipment(Entity Owner, string Name, string? Definition, string? Type, bool IsKinematic);
+public record struct Equipment(string Name, string? Definition, string? Type, bool IsKinematic) : IComponent;
 
 /// <summary>
-/// Data of an equipment.
+/// Technological and initialization data of an equipment.
 /// </summary>
 /// <param name="Technological">Characteristics.</param>
 /// <param name="Initialization">Initial state.</param>
-public sealed record EquipmentData(ParameterValues Technological, ParameterValues Initialization);
-
-/// <summary>
-/// Equipments carried by an entity, the kinematic included.
-/// </summary>
-/// <param name="ByName">Equipment entities by equipment name.</param>
-public sealed record Equipments(IReadOnlyDictionary<string, Entity> ByName);
+public record struct EquipmentData(ParameterValues Technological, ParameterValues Initialization) : IComponent;
 
 /// <summary>
 /// Parameters of an entity itself.
 /// </summary>
 /// <param name="Values">The values.</param>
-public sealed record EntityParameters(ParameterValues Values);
+public record struct EntityParameters(ParameterValues Values) : IComponent;
 
 /// <summary>
 /// Task an entity or a unit can perform.
@@ -69,27 +62,76 @@ public sealed record TaskCapability(TaskDefinition Definition, IReadOnlyList<Dat
 /// Tasks an entity or a unit can perform, its equipments' included.
 /// </summary>
 /// <param name="ByTask">Capabilities by task name.</param>
-public sealed record TaskCapabilities(IReadOnlyDictionary<string, TaskCapability> ByTask);
+public record struct TaskCapabilities(IReadOnlyDictionary<string, TaskCapability> ByTask) : IComponent;
 
 /// <summary>
-/// Member of a unit instance.
-/// </summary>
-/// <param name="Instance">The entity or unit instance.</param>
-/// <param name="Role">Role in the unit, if any.</param>
-/// <param name="IsUnit">Whether the member is a unit.</param>
-public readonly record struct UnitMemberInstance(Entity Instance, string? Role, bool IsUnit);
-
-/// <summary>
-/// Unit built from a unit archetype.
+/// Unit built from a unit archetype. Its members are its child entities.
 /// </summary>
 /// <param name="Archetype">Name of the unit archetype.</param>
 /// <param name="Folder">Folder of the archetype, if any.</param>
-/// <param name="Members">Members, in archetype order.</param>
-public sealed record Unit(string Archetype, string? Folder, IReadOnlyList<UnitMemberInstance> Members);
+public record struct Unit(string Archetype, string? Folder) : IComponent;
 
 /// <summary>
-/// Membership of an entity or a unit in a unit.
+/// Role of an entity or a unit in the unit that is its parent.
 /// </summary>
-/// <param name="Unit">The unit.</param>
 /// <param name="Role">Role in the unit, if any.</param>
-public readonly record struct UnitMembership(Entity Unit, string? Role);
+public record struct UnitMembership(string? Role) : IComponent;
+
+/// <summary>
+/// Navigation helpers over the entity hierarchy built from the archetypes.
+/// </summary>
+public static class HierarchyExtensions
+{
+    /// <summary>
+    /// Gets the equipments of an entity, the kinematic included.
+    /// </summary>
+    /// <param name="pEntity">The carrier.</param>
+    /// <returns>The equipment entities, in archetype order.</returns>
+    public static IEnumerable<Entity> GetEquipments(this Entity pEntity) => ChildrenWith<Equipment>(pEntity);
+
+    /// <summary>
+    /// Finds an equipment of an entity by name. The kinematic is named "Kinematic".
+    /// </summary>
+    /// <param name="pEntity">The carrier.</param>
+    /// <param name="pName">The equipment name.</param>
+    /// <returns>The equipment entity, or a null entity when there is none.</returns>
+    public static Entity FindEquipment(this Entity pEntity, string pName)
+    {
+        foreach (Entity lEquipment in pEntity.GetEquipments())
+        {
+            if (lEquipment.GetComponent<Equipment>().Name == pName)
+            {
+                return lEquipment;
+            }
+        }
+
+        return default;
+    }
+
+    /// <summary>
+    /// Gets the members of a unit.
+    /// </summary>
+    /// <param name="pUnit">The unit.</param>
+    /// <returns>The member entities and units, in archetype order.</returns>
+    public static IEnumerable<Entity> GetMembers(this Entity pUnit) => ChildrenWith<UnitMembership>(pUnit);
+
+    /// <summary>
+    /// Deletes an entity and, recursively, its children.
+    /// </summary>
+    /// <param name="pEntity">The entity.</param>
+    public static void DeleteTree(this Entity pEntity)
+    {
+        foreach (Entity lChild in pEntity.ChildEntities.ToArray())
+        {
+            lChild.DeleteTree();
+        }
+
+        pEntity.DeleteEntity();
+    }
+
+    private static IEnumerable<Entity> ChildrenWith<T>(Entity pEntity)
+        where T : struct, IComponent
+    {
+        return pEntity.ChildEntities.ToArray().Where(pChild => pChild.HasComponent<T>());
+    }
+}

@@ -1,19 +1,18 @@
+using Friflo.Engine.ECS;
 using XCGF.Arena.Components;
-using XCGF.Arena.Ecs;
 
 namespace XCGF.Arena.Systems;
 
 /// <summary>
 /// Context given to task behaviours and trigger handlers.
 /// </summary>
-/// <param name="World">The world.</param>
 /// <param name="Carrier">Entity or unit the task is assigned to.</param>
 /// <param name="Task">The task.</param>
-/// <param name="Time">Time of the step.</param>
-public sealed record TaskContext(World World, Entity Carrier, TaskInstance Task, SimulationTime Time);
+/// <param name="Elapsed">Simulation time at the end of the step.</param>
+public sealed record TaskContext(Entity Carrier, TaskInstance Task, TimeSpan Elapsed);
 
 /// <summary>
-/// What a task does while it runs. The task system only handles the life cycle; a behaviour acts on the world.
+/// What a task does while it runs. The task system only handles the life cycle; a behaviour acts on the entities.
 /// </summary>
 public interface ITaskBehavior
 {

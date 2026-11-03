@@ -1,5 +1,6 @@
+using Friflo.Engine.ECS;
+using Friflo.Engine.ECS.Systems;
 using XCGF.Arena.Components;
-using XCGF.Arena.Ecs;
 
 namespace XCGF.Arena.Systems;
 
@@ -9,36 +10,8 @@ namespace XCGF.Arena.Systems;
 /// <remarks>
 /// The speed is kept between the stall speed and the maximum speed, and the altitude never exceeds the ceiling.
 /// </remarks>
-public sealed class KinematicSystem : ISystem
+public sealed class KinematicSystem : QuerySystem<Kinematic>
 {
-    /// <inheritdoc/>
-    public void Update(World pWorld, SimulationTime pTime)
-    {
-        ArgumentNullException.ThrowIfNull(pWorld);
-        double lSeconds = pTime.Delta.TotalSeconds;
-        foreach (Entity lEntity in pWorld.Query<Kinematic>())
-        {
-            ref Kinematic lKinematic = ref pWorld.Get<Kinematic>(lEntity);
-            pWorld.TryGet(lEntity, out KinematicLimits lLimits);
-            lKinematic.Speed = ClampSpeed(lKinematic.Speed, lLimits);
-            if (lKinematic.Speed <= 0)
-            {
-                continue;
-            }
-
-            double lPitch = lKinematic.Orientation.Pitch * Math.PI / 180;
-            double lDistance = lKinematic.Speed * lSeconds;
-            GeoPosition lPosition = GeoMath.Offset(lKinematic.Position, lKinematic.Orientation.Heading, lDistance * Math.Cos(lPitch));
-            double lAltitude = lKinematic.Position.Altitude + (lDistance * Math.Sin(lPitch));
-            if (lLimits.Ceiling is { } lCeiling && lAltitude > lCeiling)
-            {
-                lAltitude = lCeiling;
-            }
-
-            lKinematic.Position = lPosition with { Altitude = lAltitude };
-        }
-    }
-
     /// <summary>
     /// Brings a speed within the limits.
     /// </summary>
@@ -59,5 +32,31 @@ public sealed class KinematicSystem : ISystem
         }
 
         return lSpeed;
+    }
+
+    /// <inheritdoc/>
+    protected override void OnUpdate()
+    {
+        double lSeconds = Tick.deltaTime;
+        Query.ForEachEntity((ref Kinematic pKinematic, Entity pEntity) =>
+        {
+            pEntity.TryGetComponent(out KinematicLimits lLimits);
+            pKinematic.Speed = ClampSpeed(pKinematic.Speed, lLimits);
+            if (pKinematic.Speed <= 0)
+            {
+                return;
+            }
+
+            double lPitch = pKinematic.Orientation.Pitch * Math.PI / 180;
+            double lDistance = pKinematic.Speed * lSeconds;
+            GeoPosition lPosition = GeoMath.Offset(pKinematic.Position, pKinematic.Orientation.Heading, lDistance * Math.Cos(lPitch));
+            double lAltitude = pKinematic.Position.Altitude + (lDistance * Math.Sin(lPitch));
+            if (lLimits.Ceiling is { } lCeiling && lAltitude > lCeiling)
+            {
+                lAltitude = lCeiling;
+            }
+
+            pKinematic.Position = lPosition with { Altitude = lAltitude };
+        });
     }
 }
