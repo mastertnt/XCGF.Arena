@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- A namespace ending in "Console" would hide System.Console. -->
+    <RootNamespace>XCGF.Arena.ConsoleHost</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\XCGF.Arena\XCGF.Arena.csproj" />
+  </ItemGroup>
+</Project>
