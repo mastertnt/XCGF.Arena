@@ -37,7 +37,7 @@ the archetypes described by [XCGF.Data](https://github.com/mastertnt/XCGF.Data).
 | `XCGF.Arena.Data` | Archetype model, `XcgfDataLoader` (XML with `xi:include`), `ArchetypeLibrary` (derivation, default values, constraints, validation). |
 | `XCGF.Arena.Components` | Friflo components built from the archetypes, hierarchy helpers. |
 | `XCGF.Arena.Spawning` | `ArchetypeFactory`: spawns entities and units into an `EntityStore`. |
-| `XCGF.Arena.Systems` | `KinematicSystem`, `TaskSystem` (Friflo `QuerySystem`s) and the `MoveTo` behaviour. |
+| `XCGF.Arena.Systems` | `KinematicSystem`, `TaskSystem`, `SensorSystem` (Friflo `QuerySystem`s), the `MoveTo` behaviour and the `RadarModel`. |
 | `XCGF.Arena` | `ArenaSimulation`: store, factory, systems and simulation clock wired together. |
 
 How the models map to the components:
@@ -48,6 +48,10 @@ How the models map to the components:
   `EquipmentData` (technological and initialization data, typed after their HLA data type).
 - A **unit archetype** becomes an entity with `Unit`; its members are spawned with it as child entities carrying
   `UnitMembership`.
+- A **sensor** is an equipment whose `type` has a registered `ISensorModel` (`RadarModel` for `Radar`: `MaxRange`,
+  `FieldOfView` around the carrier heading, nothing in `Off` mode). At each step `SensorSystem` writes what it sees
+  into the `SensorDetections` component of the sensor equipment. Other sensor types plug in with
+  `SensorSystem.RegisterModel`.
 - A **task** assigned with `TaskSystem.Assign` is a `TaskInstance` that goes from Pending to Running to Ended through
   its activation and exit triggers. `Immediate`, `AtTime`, `OnTaskEnd`, `OnPositionReached` and `OnEvent` are
   evaluated by the system; `OnCondition` and `CustomTrigger` need a handler registered on the system.

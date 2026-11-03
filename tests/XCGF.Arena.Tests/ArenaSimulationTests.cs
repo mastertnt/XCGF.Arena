@@ -20,11 +20,11 @@ public class ArenaSimulationTests
     }
 
     [Fact]
-    public void Constructor_RunsTasksBeforeKinematics()
+    public void Constructor_RunsTasksThenKinematicsThenSensors()
     {
         ArenaSimulation lSimulation = new ArenaSimulation(TestLibrary.Example);
 
-        Assert.Equal(new BaseSystem[] { lSimulation.Tasks, lSimulation.Kinematics }, lSimulation.Systems.ChildSystems);
+        Assert.Equal(new BaseSystem[] { lSimulation.Tasks, lSimulation.Kinematics, lSimulation.Sensors }, lSimulation.Systems.ChildSystems);
         Assert.Same(lSimulation.Store, lSimulation.Systems.Stores.Single());
     }
 

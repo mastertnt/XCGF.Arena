@@ -24,9 +24,11 @@ public sealed class ArenaSimulation
         Factory = new ArchetypeFactory(Store, pLibrary);
         Tasks = new TaskSystem(pLibrary);
         Kinematics = new KinematicSystem();
+        Sensors = new SensorSystem();
         Systems = new SystemRoot(Store, "Arena");
         Systems.Add(Tasks);
         Systems.Add(Kinematics);
+        Systems.Add(Sensors);
     }
 
     /// <summary>
@@ -55,7 +57,13 @@ public sealed class ArenaSimulation
     public KinematicSystem Kinematics { get; }
 
     /// <summary>
-    /// Gets the systems, run in order at each step: tasks, then kinematics. More systems can be added.
+    /// Gets the sensor system, used to register the detection models of the sensor types.
+    /// </summary>
+    public SensorSystem Sensors { get; }
+
+    /// <summary>
+    /// Gets the systems, run in order at each step: tasks, kinematics, then sensors, so that sensors see the positions
+    /// reached during the step. More systems can be added.
     /// </summary>
     public SystemRoot Systems { get; }
 
