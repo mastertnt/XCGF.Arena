@@ -6,6 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Example library of the XCGF.Data submodule, used when no library is given. -->
+    <None Include="..\..\external\XCGF.Data\examples\**\*.xml" LinkBase="XCGF.Data\examples" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\XCGF.Arena\XCGF.Arena.csproj" />
   </ItemGroup>
 </Project>

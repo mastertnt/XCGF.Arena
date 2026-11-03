@@ -23,8 +23,13 @@ git submodule update --init
 ```bash
 dotnet build
 dotnet test
-dotnet run --project src/XCGF.Arena.Console
+dotnet run --project src/XCGF.Arena.Console -- --duration 700
 ```
+
+The console host plays the scripted two-fighter scenario: BLUE1 and RED1 start 150 km apart at 8000 m and fly
+towards each other's starting point; their radars detect each other, they engage when within missile range, cease
+fire 30 seconds later, and lose contact once they have crossed. Options: `--library <path>`, `--duration <s>`,
+`--step <s>`, `--realtime`.
 
 ## XCGF.Data components on Friflo.Engine.ECS
 
@@ -38,7 +43,9 @@ the archetypes described by [XCGF.Data](https://github.com/mastertnt/XCGF.Data).
 | `XCGF.Arena.Components` | Friflo components built from the archetypes, hierarchy helpers. |
 | `XCGF.Arena.Spawning` | `ArchetypeFactory`: spawns entities and units into an `EntityStore`. |
 | `XCGF.Arena.Systems` | `KinematicSystem`, `TaskSystem`, `SensorSystem` (Friflo `QuerySystem`s), the `MoveTo` behaviour and the `RadarModel`. |
-| `XCGF.Arena` | `ArenaSimulation`: store, factory, systems and simulation clock wired together. |
+| `XCGF.Arena.Dis` | `DisSystem`: entity states for DIS (geocentric location, velocity and orientation, entity type from `disType`), sent to an `IDisPublisher`. |
+| `XCGF.Arena.Scenarios` | Scripted scenarios (`IScenario`, `TwoFightersScenario`) and `ArenaJournal`, which logs task transitions and radar contacts. |
+| `XCGF.Arena` | `ArenaSimulation`: store, factory, systems and simulation clock wired together. `ArenaRunner`: loads a library, plays a scenario, writes the journal. |
 
 How the models map to the components:
 
