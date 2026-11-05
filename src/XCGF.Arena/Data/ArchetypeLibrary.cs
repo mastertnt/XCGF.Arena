@@ -147,7 +147,7 @@ public sealed class ArchetypeLibrary
             {
                 Merge(lTechnological, lDefinition.TechnologicalData);
                 Merge(lInitialization, lDefinition.InitializationData);
-                lTasks.AddRange(lDefinition.Tasks);
+                MergeTasks(lTasks, lDefinition.Tasks);
                 lType = lDefinition.Type ?? lType;
                 lIsKinematic |= lDefinition.IsKinematic;
             }
@@ -155,7 +155,7 @@ public sealed class ArchetypeLibrary
 
         Merge(lTechnological, pEquipment.TechnologicalData);
         Merge(lInitialization, pEquipment.InitializationData);
-        lTasks.AddRange(pEquipment.Tasks);
+        MergeTasks(lTasks, pEquipment.Tasks);
         return new ResolvedEquipment(pEquipment.Name, pEquipment.Definition, pEquipment.Type ?? lType, lIsKinematic, lTechnological, lInitialization, lTasks);
     }
 
@@ -608,6 +608,31 @@ public sealed class ArchetypeLibrary
                 .Prepend(lVariant.DiscriminantType),
             _ => Array.Empty<string>(),
         };
+    }
+
+    /// <summary>
+    /// Merges task references: a reference to a task already referenced completes or overrides it (description,
+    /// parameter defaults and constraints), as a derived definition does for its data items.
+    /// </summary>
+    /// <param name="pTaskRefs">The references so far, updated in place.</param>
+    /// <param name="pOverrides">The references declared next.</param>
+    public static void MergeTasks(List<TaskRef> pTaskRefs, IReadOnlyList<TaskRef> pOverrides)
+    {
+        ArgumentNullException.ThrowIfNull(pTaskRefs);
+        ArgumentNullException.ThrowIfNull(pOverrides);
+        foreach (TaskRef lOverride in pOverrides)
+        {
+            int lIndex = pTaskRefs.FindIndex(pRef => pRef.Task == lOverride.Task);
+            if (lIndex < 0)
+            {
+                pTaskRefs.Add(lOverride);
+                continue;
+            }
+
+            List<DataItem> lParameters = pTaskRefs[lIndex].Parameters.ToList();
+            Merge(lParameters, lOverride.Parameters);
+            pTaskRefs[lIndex] = new TaskRef(lOverride.Task, lOverride.Description ?? pTaskRefs[lIndex].Description, lParameters);
+        }
     }
 
     private static void Merge(List<DataItem> pItems, IReadOnlyList<DataItem> pOverrides)

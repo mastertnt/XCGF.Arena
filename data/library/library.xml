@@ -2,12 +2,13 @@
 <XcgfData xmlns="urn:xcgf:data:1.0"
           xmlns:xi="http://www.w3.org/2001/XInclude"
           version="1.0">
-  <Description>Archetype library of XCGF.Arena, assembled with XInclude: the XCGF standard library shipped by the XCGF.Data package (../XCGF.Data/library/) and the archetypes played by the arena scenarios, taken from the XCGF.Data examples.</Description>
+  <Description>Archetype library of XCGF.Arena, assembled with XInclude: the XCGF standard library shipped by the XCGF.Data package (../XCGF.Data/library/: types, equipments and movement tasks) and the archetypes played by the arena scenarios, taken from the XCGF.Data examples.</Description>
   <xi:include href="../XCGF.Data/library/types/core.xml"/>
   <xi:include href="../XCGF.Data/library/types/equipment.xml"/>
   <xi:include href="../XCGF.Data/library/equipments/kinematics.xml"/>
   <xi:include href="../XCGF.Data/library/equipments/signatures.xml"/>
   <xi:include href="../XCGF.Data/library/equipments/sensors.xml"/>
+  <xi:include href="../XCGF.Data/library/tasks/kinematics.xml"/>
   <xi:include href="equipments.xml"/>
   <xi:include href="equipments-rafale.xml"/>
   <xi:include href="equipments-f35.xml"/>

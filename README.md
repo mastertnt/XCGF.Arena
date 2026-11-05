@@ -13,7 +13,7 @@ data/library/                   Arena library: the scenario archetypes (fighters
 ```
 
 XCGF.Data (schemas and standard library) comes from the [XCGF.Data](https://www.nuget.org/packages/XCGF.Data) NuGet
-package, 0.1.1. The build copies its schemas and standard library to `XCGF.Data/` and the Arena library to
+package, 0.1.2. The build copies its schemas and standard library to `XCGF.Data/` and the Arena library to
 `ArenaLibrary/` in the output directory; `ArenaLibrary/library.xml` includes the standard library through
 `../XCGF.Data/library/...`.
 
@@ -57,7 +57,7 @@ the archetypes described by [XCGF.Data](https://github.com/mastertnt/XCGF.Data).
 | `XCGF.Arena.Data` | Archetype model, `XcgfDataLoader` (XML with `xi:include`), `ArchetypeLibrary` (derivation, default values, constraints, validation). |
 | `XCGF.Arena.Components` | Friflo components built from the archetypes, hierarchy helpers. |
 | `XCGF.Arena.Spawning` | `ArchetypeFactory`: spawns entities and units into an `EntityStore`. |
-| `XCGF.Arena.Systems` | `KinematicSystem`, `TaskSystem`, `SensorSystem` (Friflo `QuerySystem`s), the `MoveTo` behaviour and the `RadarModel`. |
+| `XCGF.Arena.Systems` | `KinematicSystem`, `TaskSystem`, `SensorSystem` (Friflo `QuerySystem`s), the behaviours of the standard movement tasks (`MoveTo`, `FollowCourse`, `HoldPosition`) and the sensor models. |
 | `XCGF.Arena.Dis` | `DisSystem`: entity states for DIS (geocentric location, velocity and orientation, entity type from `disType`), sent to an `IDisPublisher`; `UdpDisPublisher` encodes them as DIS 7 Entity State PDUs with [OpenDisNet](https://github.com/RejectKid/OpenDisNet). |
 | `XCGF.Arena.Scenarios` | Scripted scenarios (`IScenario`, `TwoFightersScenario`) and `ArenaJournal`, which logs task transitions and radar contacts. |
 | `XCGF.Arena` | `ArenaSimulation`: store, factory, systems and simulation clock wired together. `ArenaRunner`: loads a library, plays a scenario, writes the journal. |
@@ -83,6 +83,12 @@ How the models map to the components:
 - A **task** assigned with `TaskSystem.Assign` is a `TaskInstance` that goes from Pending to Running to Ended through
   its activation and exit triggers. `Immediate`, `AtTime`, `OnTaskEnd`, `OnPositionReached` and `OnEvent` are
   evaluated by the system; `OnCondition` and `CustomTrigger` need a handler registered on the system.
+  The movement tasks come from the XCGF.Data standard library: an entity inherits the tasks its kinematic references
+  (`Kinematic`, then `FixedWingKinematic`), with their parameters bounded by the kinematic's data (a `MoveTo` speed
+  within `StallSpeed` and `MaxSpeed`). `MoveTo`, `FollowCourse` and `HoldPosition` have behaviours: speed from the
+  `Speed` parameter or else the `PerformanceTable` row of the `Throttle`, altitude captured within `ClimbRate`, and
+  loiter circling for a kinematic that cannot stop. `SetAltitude`, `Orbit`, `ReturnToBase`, `TakeOff` and `Land` can
+  be assigned but have no behaviour yet.
 
 ```csharp
 ArchetypeLibrary library = XcgfDataLoader.Load("ArenaLibrary/library.xml");

@@ -11,8 +11,4 @@
     <Equipment name="DAS" definition="AAQ37DAS"/>
     <Equipment name="EOTS" definition="AAQ40EOTS"/>
   </Equipments>
-  <Tasks>
-    <TaskRef task="MoveTo"/>
-    <TaskRef task="FollowFlightPlan"/>
-  </Tasks>
 </Entity>

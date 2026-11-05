@@ -187,7 +187,18 @@ public sealed class ArchetypeFactory
     {
         foreach (TaskRef lTaskRef in pTaskRefs)
         {
-            pCapabilities[lTaskRef.Task] = new TaskCapability(mLibrary.GetTask(lTaskRef.Task), lTaskRef.Parameters, pProvider);
+            if (pCapabilities.TryGetValue(lTaskRef.Task, out TaskCapability? lExisting))
+            {
+                // A second reference (the entity's, or another equipment's) completes the first one; the provider
+                // stays, since the constraints of its reference are bounded by its own data.
+                List<TaskRef> lMerged = new List<TaskRef> { new TaskRef(lTaskRef.Task, null, lExisting.Defaults) };
+                ArchetypeLibrary.MergeTasks(lMerged, new[] { lTaskRef });
+                pCapabilities[lTaskRef.Task] = lExisting with { Defaults = lMerged[0].Parameters };
+            }
+            else
+            {
+                pCapabilities[lTaskRef.Task] = new TaskCapability(mLibrary.GetTask(lTaskRef.Task), lTaskRef.Parameters, pProvider);
+            }
         }
     }
 

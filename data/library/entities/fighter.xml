@@ -16,8 +16,8 @@
     <Equipment name="Missile_2" definition="AirToAirMissile"/>
   </Equipments>
   <Tasks>
-    <TaskRef task="MoveTo"/>
-    <TaskRef task="FireOnTarget"/>
-    <TaskRef task="FollowFlightPlan"/>
+    <TaskRef task="FireOnTarget">
+      <Description>Movement tasks come from the kinematic; the entity adds the fire task of its weapons.</Description>
+    </TaskRef>
   </Tasks>
 </Entity>
