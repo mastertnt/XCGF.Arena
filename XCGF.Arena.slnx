@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/XCGF.Arena/XCGF.Arena.csproj" />
     <Project Path="src/XCGF.Arena.Console/XCGF.Arena.Console.csproj" />
+    <Project Path="src/XCGF.Arena.Map/XCGF.Arena.Map.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/XCGF.Arena.Tests/XCGF.Arena.Tests.csproj" />

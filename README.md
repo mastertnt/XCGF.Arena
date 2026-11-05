@@ -6,6 +6,7 @@
 XCGF.Arena.slnx
 src/XCGF.Arena/                 Class library
 src/XCGF.Arena.Console/         Console host that runs the library
+src/XCGF.Arena.Map/             Desktop host (Avalonia + Mapsui): map with play, pause and stop
 tests/XCGF.Arena.Tests/         xUnit tests
 data/library/                   Arena library: the scenario archetypes (fighters, tasks, patrol) on top of the
                                 XCGF.Data standard library
@@ -33,6 +34,17 @@ entity per second) and `--exercise <id>`.
 ```bash
 dotnet run --project src/XCGF.Arena.Console -- --realtime --duration 700 --dis 127.0.0.1:3000
 ```
+
+### Map
+
+```bash
+dotnet run --project src/XCGF.Arena.Map
+```
+
+The map host shows the same scenario on an OpenStreetMap background (tiles downloaded at run time), with the entities
+coloured by side and pointing to their heading. Play starts or resumes the simulation, Pause freezes it, Stop sets the
+scenario up again at its start; the speed sets the simulated seconds per wall-clock second (x1, x10, x60). It runs on
+Windows, Linux and macOS. The playback logic is `ArenaPlayer` in the library, so other hosts can reuse it.
 
 ## XCGF.Data components on Friflo.Engine.ECS
 
