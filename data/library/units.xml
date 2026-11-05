@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Units xmlns="urn:xcgf:data:1.0">
+  <Description>Unit archetypes of the example library: compositions of entity and unit archetypes.</Description>
+
+  <Unit name="FighterPatrol" folder="Air">
+    <Description>Patrol of two fighters.</Description>
+    <EntityRef entity="Fighter" role="Leader"/>
+    <EntityRef entity="Fighter" role="Wingman"/>
+    <Tasks>
+      <TaskRef task="MoveTo"/>
+      <TaskRef task="FollowFlightPlan"/>
+      <TaskRef task="ChangeFormation">
+        <Description>Capability specific to the patrol. The patrol flies in line abreast unless told otherwise.</Description>
+        <Parameter name="Formation" dataType="FormationEnum"><DefaultValue>Line</DefaultValue></Parameter>
+      </TaskRef>
+    </Tasks>
+  </Unit>
+
+</Units>

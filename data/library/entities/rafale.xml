@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Entity xmlns="urn:xcgf:data:1.0" name="Rafale" disType="1.2.71.1.3.0.0" environment="Air" folder="Aircraft/Fighter">
+  <Description>Dassault Rafale C multirole fighter with its signature, RBE2 radar, SPECTRA electronic support and missile warner, and OSF infrared search and track. Weapons are not described yet. DIS type 1.2.71.1.3.0.0: air platform, France, fighter (illustrative subcategory).</Description>
+  <Kinematic definition="RafaleKinematic">
+    <Description>Rafale kinematic, with its default initial state.</Description>
+  </Kinematic>
+  <Equipments>
+    <Equipment name="Signature" definition="RafaleSignature"/>
+    <Equipment name="Radar" definition="RBE2Radar"/>
+    <Equipment name="ESM" definition="SpectraESM"/>
+    <Equipment name="MissileWarner" definition="SpectraMissileWarner"/>
+    <Equipment name="IRST" definition="OSFIrst"/>
+  </Equipments>
+  <Tasks>
+    <TaskRef task="MoveTo"/>
+    <TaskRef task="FollowFlightPlan"/>
+  </Tasks>
+</Entity>
