@@ -142,6 +142,9 @@ public readonly struct NodeArgs
     private readonly int mNode;
     private readonly Dictionary<(int, int), object?> mTarget;
 
+    // Register of the node state, out of the range of the output pins.
+    private const int StatePin = -1;
+
     internal NodeArgs(Evaluator pEvaluator, int pNode, Dictionary<(int, int), object?> pTarget)
     {
         mEvaluator = pEvaluator;
@@ -160,6 +163,26 @@ public readonly struct NodeArgs
         object? lValue = mEvaluator.ReadInput(mNode, pPin);
         return lValue is T lTyped ? lTyped : (T)Convert.ChangeType(lValue!, typeof(T), System.Globalization.CultureInfo.InvariantCulture);
     }
+
+    /// <summary>
+    /// Tells whether a data input has a value: a linked output that is set, or a constant.
+    /// </summary>
+    /// <param name="pPin">The input.</param>
+    /// <returns>True when the input is not null.</returns>
+    public bool HasValue(int pPin) => mEvaluator.ReadInput(mNode, pPin) is not null;
+
+    /// <summary>
+    /// Reads the state a latent node keeps in the fiber between its execution and its resumption.
+    /// </summary>
+    /// <typeparam name="T">Type of the state.</typeparam>
+    /// <returns>The state, or the default when none.</returns>
+    public T? GetState<T>() => mTarget.GetValueOrDefault((mNode, StatePin)) is T lState ? lState : default;
+
+    /// <summary>
+    /// Writes the state a latent node keeps in the fiber between its execution and its resumption.
+    /// </summary>
+    /// <param name="pState">The state.</param>
+    public void SetState(object? pState) => mTarget[(mNode, StatePin)] = pState;
 
     /// <summary>
     /// Writes a data output.

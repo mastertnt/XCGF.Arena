@@ -26,7 +26,7 @@ public class ArenaSimulationTests
         ArenaSimulation lSimulation = new ArenaSimulation(TestLibrary.Example);
 
         Assert.Equal(new BaseSystem[] { lSimulation.Tasks, lSimulation.Kinematics, lSimulation.Sensors }, lSimulation.Systems.ChildSystems.Take(3));
-        Assert.Equal(new[] { typeof(ZoneDetectionSystem), typeof(BlueprintSystem) }, lSimulation.Systems.ChildSystems.Skip(3).Select(pSystem => pSystem.GetType()));
+        Assert.Equal(new[] { typeof(ZoneDetectionSystem), typeof(TaskEndDetectionSystem), typeof(BlueprintSystem) }, lSimulation.Systems.ChildSystems.Skip(3).Select(pSystem => pSystem.GetType()));
         Assert.Same(lSimulation.Blueprints, lSimulation.Systems.ChildSystems.OfType<BlueprintSystem>().Single().Runtime);
         Assert.Same(lSimulation.Store, lSimulation.Systems.Stores.Single());
     }
