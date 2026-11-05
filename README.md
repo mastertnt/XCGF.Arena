@@ -7,8 +7,13 @@ XCGF.Arena.slnx
 src/XCGF.Arena/                 Class library
 src/XCGF.Arena.Console/         Console host that runs the library
 tests/XCGF.Arena.Tests/         xUnit tests
-external/XCGF.Data/             XCGF.Data submodule (schema and example library)
+data/library/                   Arena library: the scenario archetypes (fighters, tasks, patrol) on top of the
+                                XCGF.Data standard library
+external/XCGF.Data/             XCGF.Data submodule (schemas and standard library)
 ```
+
+The build copies the XCGF.Data schemas and standard library to `XCGF.Data/` and the Arena library to
+`ArenaLibrary/` in the output directory, the layout of the XCGF.Data package.
 
 Clone with the submodule:
 
@@ -27,7 +32,7 @@ dotnet run --project src/XCGF.Arena.Console -- --duration 700
 ```
 
 The console host plays the scripted two-fighter scenario: BLUE1 and RED1 start 150 km apart at 8000 m and fly
-towards each other's starting point; their radars detect each other, they engage when within missile range, cease
+towards each other's starting point; their radars, radar warning receivers and IRSTs detect each other, they engage when within missile range, cease
 fire 30 seconds later, and lose contact once they have crossed. Options: `--library <path>`, `--duration <s>`,
 `--step <s>`, `--realtime`, `--dis <host[:port]>` (DIS 7 Entity State PDUs over UDP, port 3000 by default, one per
 entity per second) and `--exercise <id>`.
@@ -60,16 +65,22 @@ How the models map to the components:
   `EquipmentData` (technological and initialization data, typed after their HLA data type).
 - A **unit archetype** becomes an entity with `Unit`; its members are spawned with it as child entities carrying
   `UnitMembership`.
-- A **sensor** is an equipment whose `type` has a registered `ISensorModel` (`RadarModel` for `Radar`: `MaxRange`,
-  `FieldOfView` around the carrier heading, nothing in `Off` mode). At each step `SensorSystem` writes what it sees
-  into the `SensorDetections` component of the sensor equipment. Other sensor types plug in with
+- A **sensor** is an equipment whose `type` has a registered `ISensorModel`. The built-in models follow the sensor
+  definitions of the XCGF.Data standard library (`docs/models/sensor.md` and its specialisations). `SensorModel`
+  (Sensor) gives the shared coverage: `Operational`, slant range in [`MinRange`, `MaxRange`], target altitude in
+  [`MinAltitude`, `MaxAltitude`], `DetectionArcs` relative to the carrier heading (clockwise, with elevation bounds;
+  all around when absent) and the domains searched by `Capabilities`. `RadarModel` (Radar) is silent in `Off` mode;
+  `EsmModel` (ESM) hears the emitting radars of a target that share one of its `FrequencyBands`; `InfraredModel`
+  (Infrared) and `VisualModel` (Visual) detect inside their coverage. A sensor scans every `ScanInterval` and keeps its
+  `MaxContacts` nearest contacts in the `SensorDetections` component of its equipment. The signal physics (radar
+  equation, ESM sensitivity, infrared and visual signature ranges) is left to more detailed models plugged in with
   `SensorSystem.RegisterModel`.
 - A **task** assigned with `TaskSystem.Assign` is a `TaskInstance` that goes from Pending to Running to Ended through
   its activation and exit triggers. `Immediate`, `AtTime`, `OnTaskEnd`, `OnPositionReached` and `OnEvent` are
   evaluated by the system; `OnCondition` and `CustomTrigger` need a handler registered on the system.
 
 ```csharp
-ArchetypeLibrary library = XcgfDataLoader.Load("external/XCGF.Data/examples/library/library.xml");
+ArchetypeLibrary library = XcgfDataLoader.Load("ArenaLibrary/library.xml");
 ArenaSimulation arena = new ArenaSimulation(library);
 
 Entity fighter = arena.Factory.SpawnEntity("Fighter", new Dictionary<string, DataValue>

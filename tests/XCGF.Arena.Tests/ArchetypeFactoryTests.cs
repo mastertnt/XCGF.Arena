@@ -22,7 +22,7 @@ public class ArchetypeFactoryTests
 
         Assert.Equal(new EntityIdentity("Fighter", "1.2.71.1.0.0.0", EntityEnvironment.Air, "Aircraft/Fighter"), lFighter.GetComponent<EntityIdentity>());
         Assert.Equal(250, lFighter.GetComponent<Kinematic>().Speed);
-        Assert.Equal(new KinematicLimits(60, 600, 15000), lFighter.GetComponent<KinematicLimits>());
+        Assert.Equal(new KinematicLimits(60, 590, 15000), lFighter.GetComponent<KinematicLimits>());
     }
 
     [Fact]
@@ -30,8 +30,10 @@ public class ArchetypeFactoryTests
     {
         Entity lFighter = mFactory.SpawnEntity("Fighter");
 
-        Assert.Equal(new[] { "Kinematic", "Radar", "Missile_1", "Missile_2" }, lFighter.GetEquipments().Select(pEquipment => pEquipment.GetComponent<Equipment>().Name));
-        Assert.Equal(5, mStore.Count);
+        Assert.Equal(
+            new[] { "Kinematic", "Signature", "Radar", "RWR", "IRST", "Missile_1", "Missile_2" },
+            lFighter.GetEquipments().Select(pEquipment => pEquipment.GetComponent<Equipment>().Name));
+        Assert.Equal(8, mStore.Count);
 
         Entity lRadar = lFighter.FindEquipment("Radar");
         Assert.Equal(lFighter, lRadar.Parent);
@@ -48,7 +50,8 @@ public class ArchetypeFactoryTests
         Entity lKinematicEquipment = lFighter.FindEquipment("Kinematic");
         Assert.True(lKinematicEquipment.GetComponent<Equipment>().IsKinematic);
         EquipmentData lKinematicData = lKinematicEquipment.GetComponent<EquipmentData>();
-        Assert.Equal(new[] { "Position", "Orientation", "InitialSpeed" }, lKinematicData.Initialization.Items.Keys);
+        Assert.Equal(new[] { "Position", "Orientation" }, lKinematicData.Initialization.Items.Keys.Take(2));
+        Assert.Equal(new NumberValue(250), lKinematicData.Initialization.Get("InitialSpeed"));
         Assert.Null(lKinematicData.Initialization.Get("Position"));
     }
 
@@ -82,9 +85,9 @@ public class ArchetypeFactoryTests
     }
 
     [Theory]
-    [InlineData("Kinematic.InitialSpeed", 700, "must be <= 600 (MaxSpeed)")]
+    [InlineData("Kinematic.InitialSpeed", 700, "must be <= 590 (MaxSpeed)")]
     [InlineData("Kinematic.InitialSpeed", 50, "must be >= 60 (StallSpeed)")]
-    [InlineData("Radar.FieldOfView", 400, "must be <= 360")]
+    [InlineData("Radar.MinRange", 200000, "must be <= 150000 (MaxRange)")]
     [InlineData("Radar.MaxRange", 0, "must be > 0")]
     public void SpawnEntity_WithValueBreakingConstraint_ThrowsAndCreatesNothing(string pKey, double pValue, string pExpected)
     {
@@ -99,11 +102,52 @@ public class ArchetypeFactoryTests
     [Fact]
     public void SpawnEntity_WithValueOutsideListOfValues_Throws()
     {
-        Dictionary<string, DataValue> lOverrides = new Dictionary<string, DataValue> { ["Radar.Mode"] = new EnumValue("Jamming", 3) };
+        ArchetypeLibrary lLibrary = TestLibrary.FromXml("""
+            <XcgfData xmlns="urn:xcgf:data:1.0">
+              <DataTypes>
+                <BasicData name="F64" size="64" interpretation="Double" endian="Big" encoding="IEEE 754"/>
+                <BasicData name="I32" size="32" interpretation="Integer" endian="Big" encoding="32-bit two's complement signed integer"/>
+                <EnumeratedData name="ModeEnum" representation="I32">
+                  <Enumerator name="Off" value="0"/><Enumerator name="Search" value="1"/><Enumerator name="Jamming" value="2"/>
+                </EnumeratedData>
+                <FixedRecordData name="GeoPosition">
+                  <Field name="Latitude" dataType="F64"/><Field name="Longitude" dataType="F64"/><Field name="Altitude" dataType="F64"/>
+                </FixedRecordData>
+                <FixedRecordData name="Orientation">
+                  <Field name="Heading" dataType="F64"/><Field name="Pitch" dataType="F64"/><Field name="Roll" dataType="F64"/>
+                </FixedRecordData>
+              </DataTypes>
+              <EquipmentLibrary>
+                <KinematicDefinition name="Kinematic">
+                  <InitializationData>
+                    <Parameter name="Position" dataType="GeoPosition"/><Parameter name="Orientation" dataType="Orientation"/>
+                  </InitializationData>
+                </KinematicDefinition>
+                <EquipmentDefinition name="Jammer" type="Radar">
+                  <InitializationData>
+                    <Parameter name="Mode" dataType="ModeEnum">
+                      <DefaultValue>Off</DefaultValue>
+                      <Constraints><ListOfValues><Value>Off</Value><Value>Search</Value></ListOfValues></Constraints>
+                    </Parameter>
+                  </InitializationData>
+                </EquipmentDefinition>
+              </EquipmentLibrary>
+              <Entities>
+                <Entity name="Pod" disType="1.2.1.1.0.0.0">
+                  <Kinematic definition="Kinematic"/>
+                  <Equipments><Equipment name="Radar" definition="Jammer"/></Equipments>
+                </Entity>
+              </Entities>
+            </XcgfData>
+            """);
+        Assert.Empty(lLibrary.Validate());
+        ArchetypeFactory lFactory = new ArchetypeFactory(mStore, lLibrary);
+        Dictionary<string, DataValue> lOverrides = new Dictionary<string, DataValue> { ["Radar.Mode"] = new EnumValue("Jamming", 2) };
 
-        XcgfDataException lError = Assert.Throws<XcgfDataException>(() => mFactory.SpawnEntity("Fighter", lOverrides));
+        XcgfDataException lError = Assert.Throws<XcgfDataException>(() => lFactory.SpawnEntity("Pod", lOverrides));
 
-        Assert.Contains("is not one of Off, Search, Track", lError.Message);
+        Assert.Contains("is not one of Off, Search", lError.Message);
+        Assert.Equal(0, mStore.Count);
     }
 
     [Fact]
@@ -151,10 +195,10 @@ public class ArchetypeFactoryTests
             Assert.Equal("Fighter", pMember.GetComponent<EntityIdentity>().Archetype);
             Assert.Equal(lPatrol, pMember.Parent);
         });
-        Assert.Equal(11, mStore.Count);
+        Assert.Equal(17, mStore.Count);
 
         TaskCapability lChangeFormation = lPatrol.GetComponent<TaskCapabilities>().ByTask["ChangeFormation"];
-        Assert.Equal("Line", lChangeFormation.Defaults.Single().DefaultValue);
+        Assert.Equal("Line", lChangeFormation.Defaults.Single().DefaultValue!.Text);
     }
 
     [Fact]
@@ -198,7 +242,7 @@ public class ArchetypeFactoryTests
 
         lPatrol.DeleteTree();
 
-        Assert.Equal(5, mStore.Count);
+        Assert.Equal(8, mStore.Count);
         Assert.False(lOther.IsNull);
         Assert.All(mStore.Query<Equipment>().Entities.ToArray(), pEquipment => Assert.Equal(lOther, pEquipment.Parent));
     }

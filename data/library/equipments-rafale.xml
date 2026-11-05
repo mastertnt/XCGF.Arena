@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EquipmentLibrary xmlns="urn:xcgf:data:1.0">
+  <Description>Equipments of the Dassault Rafale C (single-seat, air force): kinematic, signature and sensors. Values are approximations from open sources (manufacturer brochures, public specifications) or plausible estimates where nothing is published (performance table, radar cross sections, detection ranges, radar internals); they are not authoritative data.</Description>
+
+  <KinematicDefinition name="RafaleKinematic" base="FixedWingKinematic">
+    <Description>Rafale C kinematic: two Safran M88-2 turbofans with afterburner, 4,700 kg of internal fuel, Mach 1.8 at altitude.</Description>
+    <TechnologicalData>
+      <Parameter name="EmptyMass" dataType="MassKilograms"><DefaultValue>9850</DefaultValue></Parameter>
+      <Parameter name="MaxTakeoffMass" dataType="MassKilograms"><DefaultValue>24500</DefaultValue></Parameter>
+      <Parameter name="EngineCount" dataType="Count"><DefaultValue>2</DefaultValue></Parameter>
+      <Parameter name="DryThrust" dataType="ForceNewtons"><DefaultValue>50000</DefaultValue></Parameter>
+      <Parameter name="AfterburnerThrust" dataType="ForceNewtons"><DefaultValue>75000</DefaultValue></Parameter>
+      <Parameter name="FuelCapacity" dataType="MassKilograms"><DefaultValue>4700</DefaultValue></Parameter>
+      <Parameter name="PerformanceTable" dataType="PerformanceTable">
+        <DefaultValue>
+          <Item><Field name="MinAltitude">0</Field><Field name="MaxAltitude">2000</Field><Field name="Throttle">Loiter</Field><Field name="Speed">120</Field><Field name="FuelConsumption">0.3</Field></Item>
+          <Item><Field name="MinAltitude">0</Field><Field name="MaxAltitude">2000</Field><Field name="Throttle">Cruise</Field><Field name="Speed">240</Field><Field name="FuelConsumption">0.55</Field></Item>
+          <Item><Field name="MinAltitude">0</Field><Field name="MaxAltitude">2000</Field><Field name="Throttle">Full</Field><Field name="Speed">330</Field><Field name="FuelConsumption">1.4</Field></Item>
+          <Item><Field name="MinAltitude">0</Field><Field name="MaxAltitude">2000</Field><Field name="Throttle">Flank</Field><Field name="Speed">386</Field><Field name="FuelConsumption">4.2</Field></Item>
+          <Item><Field name="MinAltitude">2000</Field><Field name="MaxAltitude">15000</Field><Field name="Throttle">Loiter</Field><Field name="Speed">140</Field><Field name="FuelConsumption">0.22</Field></Item>
+          <Item><Field name="MinAltitude">2000</Field><Field name="MaxAltitude">15000</Field><Field name="Throttle">Cruise</Field><Field name="Speed">260</Field><Field name="FuelConsumption">0.42</Field></Item>
+          <Item><Field name="MinAltitude">2000</Field><Field name="MaxAltitude">15000</Field><Field name="Throttle">Full</Field><Field name="Speed">340</Field><Field name="FuelConsumption">1.0</Field></Item>
+          <Item><Field name="MinAltitude">2000</Field><Field name="MaxAltitude">15000</Field><Field name="Throttle">Flank</Field><Field name="Speed">531</Field><Field name="FuelConsumption">3.4</Field></Item>
+        </DefaultValue>
+      </Parameter>
+      <Parameter name="StallSpeed" dataType="SpeedMetersPerSecond"><DefaultValue>55</DefaultValue></Parameter>
+      <Parameter name="MaxSpeed" dataType="SpeedMetersPerSecond"><DefaultValue>531</DefaultValue></Parameter>
+      <Parameter name="ClimbRate" dataType="SpeedMetersPerSecond"><DefaultValue>305</DefaultValue></Parameter>
+      <Parameter name="Ceiling" dataType="DistanceMeters"><DefaultValue>15835</DefaultValue></Parameter>
+      <Parameter name="Agility" dataType="Rating"><DefaultValue>5</DefaultValue></Parameter>
+      <Parameter name="MinRunwayLength" dataType="DistanceMeters"><DefaultValue>400</DefaultValue></Parameter>
+    </TechnologicalData>
+    <InitializationData>
+      <Parameter name="InitialSpeed" dataType="SpeedMetersPerSecond"><DefaultValue>220</DefaultValue></Parameter>
+      <Parameter name="InitialFuel" dataType="MassKilograms"><DefaultValue>4700</DefaultValue></Parameter>
+    </InitializationData>
+  </KinematicDefinition>
+
+  <EquipmentDefinition name="RafaleSignature" base="AircraftSignature">
+    <Description>Rafale signature: reduced frontal radar cross section (shaping, materials), canard delta of 15.27 m x 10.90 m.</Description>
+    <TechnologicalData>
+      <Parameter name="Dimensions" dataType="Dimensions">
+        <DefaultValue><Field name="Length">15.27</Field><Field name="Span">10.9</Field><Field name="Height">5.34</Field></DefaultValue>
+      </Parameter>
+      <Parameter name="Visual" dataType="AspectDetectionRange">
+        <DefaultValue><Field name="Front">11000</Field><Field name="Side">16000</Field><Field name="Rear">11000</Field><Field name="Top">20000</Field></DefaultValue>
+      </Parameter>
+      <Parameter name="Infrared" dataType="AspectDetectionRange">
+        <DefaultValue><Field name="Front">20000</Field><Field name="Side">30000</Field><Field name="Rear">48000</Field><Field name="Top">32000</Field></DefaultValue>
+      </Parameter>
+      <Parameter name="RadarCrossSectionAToD" dataType="AspectRadarCrossSection">
+        <DefaultValue><Field name="Front">2</Field><Field name="Side">6</Field><Field name="Rear">3</Field><Field name="Top">10</Field></DefaultValue>
+      </Parameter>
+      <Parameter name="RadarCrossSectionEToM" dataType="AspectRadarCrossSection">
+        <DefaultValue><Field name="Front">0.5</Field><Field name="Side">4</Field><Field name="Rear">1.5</Field><Field name="Top">8</Field></DefaultValue>
+      </Parameter>
+    </TechnologicalData>
+  </EquipmentDefinition>
+
+  <EquipmentDefinition name="RBE2Radar" base="Radar">
+    <Description>Thales RBE2 AESA multimode radar in the nose: air and surface search, tracking and fire control, ground mapping; covers a 140 degree front sector.</Description>
+    <TechnologicalData>
+      <Parameter name="Role" dataType="SensorRoleEnum"><DefaultValue>FireControl</DefaultValue></Parameter>
+      <Parameter name="Generation" dataType="SensorGenerationEnum"><DefaultValue>Early2010s</DefaultValue></Parameter>
+      <Parameter name="MinRange" dataType="DistanceMeters"><DefaultValue>150</DefaultValue></Parameter>
+      <Parameter name="MaxRange" dataType="DistanceMeters"><DefaultValue>200000</DefaultValue></Parameter>
+      <Parameter name="MinAltitude" dataType="DistanceMeters"><DefaultValue>0</DefaultValue></Parameter>
+      <Parameter name="MaxAltitude" dataType="DistanceMeters"><DefaultValue>30000</DefaultValue></Parameter>
+      <Parameter name="ScanInterval" dataType="DurationSeconds"><DefaultValue>1</DefaultValue></Parameter>
+      <Parameter name="Capabilities" dataType="SensorCapabilities">
+        <DefaultValue><Item>AirSearch</Item><Item>SurfaceSearch</Item><Item>LandSearch</Item><Item>RangeInformation</Item><Item>HeadingInformation</Item><Item>SpeedInformation</Item><Item>AltitudeInformation</Item><Item>Classification</Item><Item>TargetIllumination</Item></DefaultValue>
+      </Parameter>
+      <Parameter name="DetectionArcs" dataType="SensorArcs">
+        <DefaultValue><Item><Field name="AzimuthStart">290</Field><Field name="AzimuthEnd">70</Field><Field name="ElevationMin">-60</Field><Field name="ElevationMax">60</Field></Item></DefaultValue>
+      </Parameter>
+      <Parameter name="MaxContacts" dataType="Count"><DefaultValue>40</DefaultValue></Parameter>
+      <Parameter name="FrequencyBands" dataType="NatoBands">
+        <DefaultValue><Item>I</Item><Item>J</Item></DefaultValue>
+      </Parameter>
+      <Parameter name="PeakPower" dataType="PowerWatts"><DefaultValue>8000</DefaultValue></Parameter>
+      <Parameter name="AntennaGain" dataType="Decibels"><DefaultValue>35</DefaultValue></Parameter>
+      <Parameter name="HorizontalBeamwidth" dataType="AngleDegrees"><DefaultValue>2.8</DefaultValue></Parameter>
+      <Parameter name="VerticalBeamwidth" dataType="AngleDegrees"><DefaultValue>2.8</DefaultValue></Parameter>
+      <Parameter name="PulseWidth" dataType="ShortDurationSeconds"><DefaultValue>0.000001</DefaultValue></Parameter>
+      <Parameter name="PulseRepetitionFrequency" dataType="FrequencyHertz"><DefaultValue>100000</DefaultValue></Parameter>
+      <Parameter name="SystemNoiseLevel" dataType="Decibels"><DefaultValue>4</DefaultValue></Parameter>
+      <Parameter name="ProcessingGain" dataType="Decibels"><DefaultValue>22</DefaultValue></Parameter>
+      <Parameter name="RangeResolution" dataType="DistanceMeters"><DefaultValue>30</DefaultValue></Parameter>
+      <Parameter name="AngularResolution" dataType="AngleDegrees"><DefaultValue>1</DefaultValue></Parameter>
+      <Parameter name="Features" dataType="RadarFeatures">
+        <DefaultValue><Item>PulseDoppler</Item><Item>LookDownShootDown</Item><Item>TrackWhileScan</Item><Item>MovingTargetIndicator</Item><Item>SyntheticAperture</Item><Item>ActiveElectronicallyScanned</Item><Item>FrequencyAgility</Item><Item>NonCooperativeTargetRecognition</Item></DefaultValue>
+      </Parameter>
+      <Parameter name="MaxIlluminatedTargets" dataType="Count"><DefaultValue>8</DefaultValue></Parameter>
+    </TechnologicalData>
+    <InitializationData>
+      <Parameter name="Mode" dataType="RadarModeEnum"><DefaultValue>Search</DefaultValue></Parameter>
+    </InitializationData>
+  </EquipmentDefinition>
+
+  <EquipmentDefinition name="SpectraESM" base="ESM">
+    <Description>Detection part of the Thales/MBDA SPECTRA self-protection suite: radar warning and electronic support all around the aircraft, with emitter identification and accurate bearing.</Description>
+    <TechnologicalData>
+      <Parameter name="Role" dataType="SensorRoleEnum"><DefaultValue>ElectronicSupport</DefaultValue></Parameter>
+      <Parameter name="Generation" dataType="SensorGenerationEnum"><DefaultValue>Early2010s</DefaultValue></Parameter>
+      <Parameter name="MaxRange" dataType="DistanceMeters"><DefaultValue>400000</DefaultValue></Parameter>
+      <Parameter name="Capabilities" dataType="SensorCapabilities">
+        <DefaultValue><Item>AirSearch</Item><Item>SurfaceSearch</Item><Item>LandSearch</Item><Item>Classification</Item><Item>Identification</Item></DefaultValue>
+      </Parameter>
+      <Parameter name="FrequencyBands" dataType="NatoBands">
+        <DefaultValue><Item>C</Item><Item>D</Item><Item>E</Item><Item>F</Item><Item>G</Item><Item>H</Item><Item>I</Item><Item>J</Item><Item>K</Item></DefaultValue>
+      </Parameter>
+      <Parameter name="Sensitivity" dataType="PowerDecibelMilliwatts"><DefaultValue>-70</DefaultValue></Parameter>
+      <Parameter name="BearingAccuracy" dataType="AngleDegrees"><DefaultValue>1</DefaultValue></Parameter>
+    </TechnologicalData>
+  </EquipmentDefinition>
+
+  <EquipmentDefinition name="SpectraMissileWarner" base="InfraredSensor">
+    <Description>Infrared missile approach warner of the SPECTRA suite, covering all around the aircraft.</Description>
+    <TechnologicalData>
+      <Parameter name="Role" dataType="SensorRoleEnum"><DefaultValue>MissileApproachWarning</DefaultValue></Parameter>
+      <Parameter name="Generation" dataType="SensorGenerationEnum"><DefaultValue>Early2010s</DefaultValue></Parameter>
+      <Parameter name="MaxRange" dataType="DistanceMeters"><DefaultValue>10000</DefaultValue></Parameter>
+      <Parameter name="Capabilities" dataType="SensorCapabilities">
+        <DefaultValue><Item>AirSearch</Item><Item>HeadingInformation</Item></DefaultValue>
+      </Parameter>
+      <Parameter name="Band" dataType="InfraredBandEnum"><DefaultValue>MidWave</DefaultValue></Parameter>
+    </TechnologicalData>
+  </EquipmentDefinition>
+
+  <EquipmentDefinition name="OSFIrst" base="InfraredSensor">
+    <Description>Infrared channel of the Thales Optronique Secteur Frontal (OSF) in front of the canopy: passive search and track with imaging; covers a front sector.</Description>
+    <TechnologicalData>
+      <Parameter name="Role" dataType="SensorRoleEnum"><DefaultValue>InfraredSearchAndTrack</DefaultValue></Parameter>
+      <Parameter name="Generation" dataType="SensorGenerationEnum"><DefaultValue>Early2010s</DefaultValue></Parameter>
+      <Parameter name="MaxRange" dataType="DistanceMeters"><DefaultValue>90000</DefaultValue></Parameter>
+      <Parameter name="Capabilities" dataType="SensorCapabilities">
+        <DefaultValue><Item>AirSearch</Item><Item>SurfaceSearch</Item><Item>HeadingInformation</Item><Item>Classification</Item><Item>Identification</Item></DefaultValue>
+      </Parameter>
+      <Parameter name="DetectionArcs" dataType="SensorArcs">
+        <DefaultValue><Item><Field name="AzimuthStart">300</Field><Field name="AzimuthEnd">60</Field><Field name="ElevationMin">-30</Field><Field name="ElevationMax">30</Field></Item></DefaultValue>
+      </Parameter>
+      <Parameter name="Band" dataType="InfraredBandEnum"><DefaultValue>MidWave</DefaultValue></Parameter>
+      <Parameter name="Imaging" dataType="HLAboolean"><DefaultValue>HLAtrue</DefaultValue></Parameter>
+    </TechnologicalData>
+  </EquipmentDefinition>
+
+</EquipmentLibrary>

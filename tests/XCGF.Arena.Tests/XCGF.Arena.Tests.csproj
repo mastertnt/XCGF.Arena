@@ -15,11 +15,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Example library of the XCGF.Data submodule, copied next to the tests. -->
-    <None Include="..\..\external\XCGF.Data\examples\**\*.xml" LinkBase="XCGF.Data\examples" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\src\XCGF.Arena\XCGF.Arena.csproj" />
   </ItemGroup>
 </Project>

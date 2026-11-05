@@ -396,8 +396,18 @@ public static class XcgfDataLoader
             Required(pElement, "name"),
             Required(pElement, "dataType"),
             Text(pElement, "Description"),
-            pElement.Element(Namespace + "DefaultValue")?.Value,
+            pElement.Element(Namespace + "DefaultValue") is { } lDefault ? ReadValue(lDefault) : null,
             lConstraints);
+    }
+
+    private static ValueNode ReadValue(XElement pElement)
+    {
+        string lText = string.Concat(pElement.Nodes().OfType<XText>().Select(pText => pText.Value)).Trim();
+        List<KeyValuePair<string, ValueNode>> lFields = pElement.Elements(Namespace + "Field")
+            .Select(pField => new KeyValuePair<string, ValueNode>(Required(pField, "name"), ReadValue(pField)))
+            .ToList();
+        List<ValueNode> lItems = pElement.Elements(Namespace + "Item").Select(ReadValue).ToList();
+        return new ValueNode(lText, lFields, lItems);
     }
 
     private static List<Argument> ReadArguments(XElement pElement)

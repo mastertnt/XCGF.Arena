@@ -15,5 +15,5 @@ public readonly record struct Detection(Entity Target, double Range, double Bear
 /// Detections of a sensor equipment at the last step it was evaluated.
 /// </summary>
 /// <param name="Items">The detections, empty when the sensor sees nothing or is off.</param>
-/// <param name="Time">Simulation time of the evaluation.</param>
+/// <param name="Time">Simulation time of the last scan.</param>
 public record struct SensorDetections(IReadOnlyList<Detection> Items, TimeSpan Time) : IComponent;

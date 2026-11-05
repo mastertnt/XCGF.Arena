@@ -15,7 +15,7 @@ internal static class Program
 
     private const string Usage = """
         Usage: XCGF.Arena.Console [options]
-          --library <path>     XCGF.Data library (default: the XCGF.Data example library)
+          --library <path>     XCGF.Data library (default: the arena library)
           --duration <s>       simulation time to play, in seconds (default: 600)
           --step <s>           simulation step, in seconds (default: 1)
           --realtime           pace the simulation on the wall clock
@@ -68,7 +68,7 @@ internal static class Program
 
     private static bool TryParse(string[] pArguments, out ArenaRunOptions? pOptions, out string? pError)
     {
-        string lLibrary = Path.Combine(AppContext.BaseDirectory, "XCGF.Data", "examples", "library", "library.xml");
+        string lLibrary = Path.Combine(AppContext.BaseDirectory, "ArenaLibrary", "library.xml");
         double lDuration = 600;
         double lStep = 1;
         bool lRealTime = false;

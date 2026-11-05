@@ -12,7 +12,7 @@ public class SensorSystemTests
     private readonly ArenaSimulation mSimulation = new ArenaSimulation(TestLibrary.Example);
 
     [Fact]
-    public void Radar_DetectsTargetsInRangeAndFieldOfView()
+    public void Radar_DetectsTargetsInRangeAndDetectionArc()
     {
         Entity lFighter = SpawnFighter(new GeoPosition(0, 0, 5000), 0);
         Entity lAhead = SpawnAt(lFighter, 0, 100000);
@@ -33,7 +33,7 @@ public class SensorSystemTests
     }
 
     [Fact]
-    public void Radar_FieldOfViewFollowsTheCarrierHeading()
+    public void Radar_DetectionArcFollowsTheCarrierHeading()
     {
         Entity lFighter = SpawnFighter(new GeoPosition(0, 0, 5000), 90);
         Entity lEast = SpawnAt(lFighter, 90, 50000);
@@ -75,6 +75,81 @@ public class SensorSystemTests
     }
 
     [Fact]
+    public void Radar_IgnoresTargetsAboveMaxAltitudeOrOutsideElevation()
+    {
+        Entity lFighter = SpawnFighter(new GeoPosition(0, 0, 5000), 0);
+        Entity lInside = SpawnFighter(GeoMath.Offset(lFighter.GetComponent<Kinematic>().Position, 0, 40000), 0);
+        SpawnFighter(WithAltitude(GeoMath.Offset(lFighter.GetComponent<Kinematic>().Position, 0, 40000), 35000), 0);
+        SpawnFighter(WithAltitude(GeoMath.Offset(lFighter.GetComponent<Kinematic>().Position, 0, 10000), 30000), 0);
+
+        mSimulation.Step(sStep);
+
+        Assert.Equal(lInside, Assert.Single(lFighter.FindEquipment("Radar").GetComponent<SensorDetections>().Items).Target);
+    }
+
+    [Fact]
+    public void Radar_KeepsItsMaxContactsNearestDetections()
+    {
+        Dictionary<string, DataValue> lOverrides = new Dictionary<string, DataValue> { ["Radar.MaxContacts"] = new IntegerValue(2) };
+        Entity lFighter = SpawnFighter(new GeoPosition(0, 0, 5000), 0, lOverrides);
+        SpawnAt(lFighter, 0, 30000);
+        Entity lNear = SpawnAt(lFighter, 0, 10000);
+        Entity lMiddle = SpawnAt(lFighter, 10, 20000);
+
+        mSimulation.Step(sStep);
+
+        Assert.Equal(new[] { lNear, lMiddle }, lFighter.FindEquipment("Radar").GetComponent<SensorDetections>().Items.Select(pDetection => pDetection.Target));
+    }
+
+    [Fact]
+    public void Radar_ScansOncePerScanInterval()
+    {
+        Entity lFighter = SpawnFighter(new GeoPosition(0, 0, 5000), 0);
+        mSimulation.Step(sStep);
+        Entity lTarget = SpawnAt(lFighter, 0, 10000);
+
+        mSimulation.Step(sStep);
+        SensorDetections lBefore = lFighter.FindEquipment("Radar").GetComponent<SensorDetections>();
+        mSimulation.Step(sStep);
+        SensorDetections lAfter = lFighter.FindEquipment("Radar").GetComponent<SensorDetections>();
+
+        Assert.Equal(TimeSpan.FromSeconds(1), lBefore.Time);
+        Assert.DoesNotContain(lBefore.Items, pDetection => pDetection.Target == lTarget);
+        Assert.Equal(TimeSpan.FromSeconds(3), lAfter.Time);
+        Assert.Contains(lAfter.Items, pDetection => pDetection.Target == lTarget);
+    }
+
+    [Fact]
+    public void RadarWarningReceiver_HearsOnlyEmittingRadars()
+    {
+        Entity lFighter = SpawnFighter(new GeoPosition(0, 0, 5000), 0);
+        Entity lEmitting = SpawnAt(lFighter, 180, 200000);
+        Dictionary<string, DataValue> lSilent = new Dictionary<string, DataValue> { ["Radar.Mode"] = new EnumValue("Off", 0) };
+        SpawnFighter(GeoMath.Offset(lFighter.GetComponent<Kinematic>().Position, 90, 50000), 0, lSilent);
+
+        mSimulation.Step(sStep);
+
+        Detection lDetection = Assert.Single(lFighter.FindEquipment("RWR").GetComponent<SensorDetections>().Items);
+        Assert.Equal(lEmitting, lDetection.Target);
+        Assert.Empty(lFighter.FindEquipment("Radar").GetComponent<SensorDetections>().Items);
+    }
+
+    [Fact]
+    public void Irst_DetectsInItsFrontSector_AndNothingWhenNotOperational()
+    {
+        Entity lFighter = SpawnFighter(new GeoPosition(0, 0, 5000), 0);
+        Entity lAbeam = SpawnAt(lFighter, 80, 30000);
+        SpawnAt(lFighter, 180, 30000);
+        Dictionary<string, DataValue> lBroken = new Dictionary<string, DataValue> { ["IRST.Operational"] = new EnumValue("HLAfalse", 0) };
+        Entity lBrokenFighter = SpawnFighter(GeoMath.Offset(lFighter.GetComponent<Kinematic>().Position, 270, 100000), 90, lBroken);
+
+        mSimulation.Step(sStep);
+
+        Assert.Equal(lAbeam, Assert.Single(lFighter.FindEquipment("IRST").GetComponent<SensorDetections>().Items).Target);
+        Assert.Empty(lBrokenFighter.FindEquipment("IRST").GetComponent<SensorDetections>().Items);
+    }
+
+    [Fact]
     public void SensorSystem_IgnoresEquipmentsWithoutModel()
     {
         Entity lFighter = SpawnFighter(default, 0);
@@ -98,9 +173,11 @@ public class SensorSystemTests
         Assert.Equal(lTarget, Assert.Single(lFighter.FindEquipment("Missile_1").GetComponent<SensorDetections>().Items).Target);
     }
 
-    private Entity SpawnFighter(GeoPosition pPosition, double pHeading)
+    private static GeoPosition WithAltitude(GeoPosition pPosition, double pAltitude) => pPosition with { Altitude = pAltitude };
+
+    private Entity SpawnFighter(GeoPosition pPosition, double pHeading, IReadOnlyDictionary<string, DataValue>? pOverrides = null)
     {
-        Dictionary<string, DataValue> lOverrides = new Dictionary<string, DataValue>
+        Dictionary<string, DataValue> lOverrides = new Dictionary<string, DataValue>(pOverrides ?? new Dictionary<string, DataValue>())
         {
             ["Kinematic.Position"] = pPosition.ToValue(),
             ["Kinematic.Orientation"] = new Orientation(pHeading, 0, 0).ToValue(),
