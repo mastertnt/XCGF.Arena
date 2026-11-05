@@ -1,0 +1,3 @@
+[submodule "external/XCGF.Data"]
+	path = external/XCGF.Data
+	url = https://github.com/mastertnt/XCGF.Data.git

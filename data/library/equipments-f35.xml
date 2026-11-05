@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EquipmentLibrary xmlns="urn:xcgf:data:1.0">
+  <Description>Equipments of the Lockheed Martin F-35A Lightning II (conventional take-off and landing): kinematic, signature and sensors. Values are approximations from open sources (manufacturer brochures, public specifications) or plausible estimates where nothing is published (performance table, radar cross sections, detection ranges, radar internals); they are not authoritative data.</Description>
+
+  <KinematicDefinition name="F35AKinematic" base="FixedWingKinematic">
+    <Description>F-35A kinematic: one Pratt &amp; Whitney F135 turbofan with afterburner, 8,278 kg of internal fuel, Mach 1.6 at altitude.</Description>
+    <TechnologicalData>
+      <Parameter name="EmptyMass" dataType="MassKilograms"><DefaultValue>13290</DefaultValue></Parameter>
+      <Parameter name="MaxTakeoffMass" dataType="MassKilograms"><DefaultValue>31800</DefaultValue></Parameter>
+      <Parameter name="EngineCount" dataType="Count"><DefaultValue>1</DefaultValue></Parameter>
+      <Parameter name="DryThrust" dataType="ForceNewtons"><DefaultValue>125000</DefaultValue></Parameter>
+      <Parameter name="AfterburnerThrust" dataType="ForceNewtons"><DefaultValue>191000</DefaultValue></Parameter>
+      <Parameter name="FuelCapacity" dataType="MassKilograms"><DefaultValue>8278</DefaultValue></Parameter>
+      <Parameter name="PerformanceTable" dataType="PerformanceTable">
+        <DefaultValue>
+          <Item><Field name="MinAltitude">0</Field><Field name="MaxAltitude">2000</Field><Field name="Throttle">Loiter</Field><Field name="Speed">125</Field><Field name="FuelConsumption">0.35</Field></Item>
+          <Item><Field name="MinAltitude">0</Field><Field name="MaxAltitude">2000</Field><Field name="Throttle">Cruise</Field><Field name="Speed">240</Field><Field name="FuelConsumption">0.65</Field></Item>
+          <Item><Field name="MinAltitude">0</Field><Field name="MaxAltitude">2000</Field><Field name="Throttle">Full</Field><Field name="Speed">320</Field><Field name="FuelConsumption">1.6</Field></Item>
+          <Item><Field name="MinAltitude">0</Field><Field name="MaxAltitude">2000</Field><Field name="Throttle">Flank</Field><Field name="Speed">370</Field><Field name="FuelConsumption">5.0</Field></Item>
+          <Item><Field name="MinAltitude">2000</Field><Field name="MaxAltitude">15000</Field><Field name="Throttle">Loiter</Field><Field name="Speed">145</Field><Field name="FuelConsumption">0.26</Field></Item>
+          <Item><Field name="MinAltitude">2000</Field><Field name="MaxAltitude">15000</Field><Field name="Throttle">Cruise</Field><Field name="Speed">260</Field><Field name="FuelConsumption">0.5</Field></Item>
+          <Item><Field name="MinAltitude">2000</Field><Field name="MaxAltitude">15000</Field><Field name="Throttle">Full</Field><Field name="Speed">330</Field><Field name="FuelConsumption">1.2</Field></Item>
+          <Item><Field name="MinAltitude">2000</Field><Field name="MaxAltitude">15000</Field><Field name="Throttle">Flank</Field><Field name="Speed">472</Field><Field name="FuelConsumption">4.0</Field></Item>
+        </DefaultValue>
+      </Parameter>
+      <Parameter name="StallSpeed" dataType="SpeedMetersPerSecond"><DefaultValue>60</DefaultValue></Parameter>
+      <Parameter name="MaxSpeed" dataType="SpeedMetersPerSecond"><DefaultValue>472</DefaultValue></Parameter>
+      <Parameter name="ClimbRate" dataType="SpeedMetersPerSecond"><DefaultValue>230</DefaultValue></Parameter>
+      <Parameter name="Ceiling" dataType="DistanceMeters"><DefaultValue>15240</DefaultValue></Parameter>
+      <Parameter name="Agility" dataType="Rating"><DefaultValue>4</DefaultValue></Parameter>
+      <Parameter name="MinRunwayLength" dataType="DistanceMeters"><DefaultValue>600</DefaultValue></Parameter>
+    </TechnologicalData>
+    <InitializationData>
+      <Parameter name="InitialSpeed" dataType="SpeedMetersPerSecond"><DefaultValue>220</DefaultValue></Parameter>
+      <Parameter name="InitialFuel" dataType="MassKilograms"><DefaultValue>8278</DefaultValue></Parameter>
+    </InitializationData>
+  </KinematicDefinition>
+
+  <EquipmentDefinition name="F35ASignature" base="AircraftSignature">
+    <Description>F-35A signature: very low radar cross section in bands E to M (stealth shaping and coatings, internal weapons), higher in the low bands; 15.67 m x 10.67 m.</Description>
+    <TechnologicalData>
+      <Parameter name="Dimensions" dataType="Dimensions">
+        <DefaultValue><Field name="Length">15.67</Field><Field name="Span">10.67</Field><Field name="Height">4.38</Field></DefaultValue>
+      </Parameter>
+      <Parameter name="Visual" dataType="AspectDetectionRange">
+        <DefaultValue><Field name="Front">11000</Field><Field name="Side">16000</Field><Field name="Rear">11000</Field><Field name="Top">20000</Field></DefaultValue>
+      </Parameter>
+      <Parameter name="Infrared" dataType="AspectDetectionRange">
+        <DefaultValue><Field name="Front">18000</Field><Field name="Side">28000</Field><Field name="Rear">40000</Field><Field name="Top">30000</Field></DefaultValue>
+      </Parameter>
+      <Parameter name="RadarCrossSectionAToD" dataType="AspectRadarCrossSection">
+        <DefaultValue><Field name="Front">0.1</Field><Field name="Side">0.5</Field><Field name="Rear">0.3</Field><Field name="Top">1</Field></DefaultValue>
+      </Parameter>
+      <Parameter name="RadarCrossSectionEToM" dataType="AspectRadarCrossSection">
+        <DefaultValue><Field name="Front">0.001</Field><Field name="Side">0.05</Field><Field name="Rear">0.01</Field><Field name="Top">0.1</Field></DefaultValue>
+      </Parameter>
+    </TechnologicalData>
+  </EquipmentDefinition>
+
+  <EquipmentDefinition name="APG81Radar" base="Radar">
+    <Description>Northrop Grumman AN/APG-81 AESA radar in the nose: air and surface search, fire control, SAR mapping, low probability of intercept; covers a 120 degree front sector.</Description>
+    <TechnologicalData>
+      <Parameter name="Role" dataType="SensorRoleEnum"><DefaultValue>FireControl</DefaultValue></Parameter>
+      <Parameter name="Generation" dataType="SensorGenerationEnum"><DefaultValue>Early2010s</DefaultValue></Parameter>
+      <Parameter name="MinRange" dataType="DistanceMeters"><DefaultValue>150</DefaultValue></Parameter>
+      <Parameter name="MaxRange" dataType="DistanceMeters"><DefaultValue>170000</DefaultValue></Parameter>
+      <Parameter name="MinAltitude" dataType="DistanceMeters"><DefaultValue>0</DefaultValue></Parameter>
+      <Parameter name="MaxAltitude" dataType="DistanceMeters"><DefaultValue>30000</DefaultValue></Parameter>
+      <Parameter name="ScanInterval" dataType="DurationSeconds"><DefaultValue>1</DefaultValue></Parameter>
+      <Parameter name="Capabilities" dataType="SensorCapabilities">
+        <DefaultValue><Item>AirSearch</Item><Item>SurfaceSearch</Item><Item>LandSearch</Item><Item>RangeInformation</Item><Item>HeadingInformation</Item><Item>SpeedInformation</Item><Item>AltitudeInformation</Item><Item>Classification</Item><Item>TargetIllumination</Item></DefaultValue>
+      </Parameter>
+      <Parameter name="DetectionArcs" dataType="SensorArcs">
+        <DefaultValue><Item><Field name="AzimuthStart">300</Field><Field name="AzimuthEnd">60</Field><Field name="ElevationMin">-60</Field><Field name="ElevationMax">60</Field></Item></DefaultValue>
+      </Parameter>
+      <Parameter name="MaxContacts" dataType="Count"><DefaultValue>40</DefaultValue></Parameter>
+      <Parameter name="FrequencyBands" dataType="NatoBands">
+        <DefaultValue><Item>I</Item><Item>J</Item></DefaultValue>
+      </Parameter>
+      <Parameter name="PeakPower" dataType="PowerWatts"><DefaultValue>10000</DefaultValue></Parameter>
+      <Parameter name="AntennaGain" dataType="Decibels"><DefaultValue>36</DefaultValue></Parameter>
+      <Parameter name="HorizontalBeamwidth" dataType="AngleDegrees"><DefaultValue>2.5</DefaultValue></Parameter>
+      <Parameter name="VerticalBeamwidth" dataType="AngleDegrees"><DefaultValue>2.5</DefaultValue></Parameter>
+      <Parameter name="PulseWidth" dataType="ShortDurationSeconds"><DefaultValue>0.000001</DefaultValue></Parameter>
+      <Parameter name="PulseRepetitionFrequency" dataType="FrequencyHertz"><DefaultValue>100000</DefaultValue></Parameter>
+      <Parameter name="SystemNoiseLevel" dataType="Decibels"><DefaultValue>4</DefaultValue></Parameter>
+      <Parameter name="ProcessingGain" dataType="Decibels"><DefaultValue>23</DefaultValue></Parameter>
+      <Parameter name="RangeResolution" dataType="DistanceMeters"><DefaultValue>30</DefaultValue></Parameter>
+      <Parameter name="AngularResolution" dataType="AngleDegrees"><DefaultValue>1</DefaultValue></Parameter>
+      <Parameter name="Features" dataType="RadarFeatures">
+        <DefaultValue><Item>PulseDoppler</Item><Item>LookDownShootDown</Item><Item>TrackWhileScan</Item><Item>MovingTargetIndicator</Item><Item>SyntheticAperture</Item><Item>InverseSyntheticAperture</Item><Item>ActiveElectronicallyScanned</Item><Item>FrequencyAgility</Item><Item>LowProbabilityOfIntercept</Item><Item>NonCooperativeTargetRecognition</Item></DefaultValue>
+      </Parameter>
+      <Parameter name="MaxIlluminatedTargets" dataType="Count"><DefaultValue>8</DefaultValue></Parameter>
+    </TechnologicalData>
+    <InitializationData>
+      <Parameter name="Mode" dataType="RadarModeEnum"><DefaultValue>Search</DefaultValue></Parameter>
+    </InitializationData>
+  </EquipmentDefinition>
+
+  <EquipmentDefinition name="ASQ239ESM" base="ESM">
+    <Description>BAE Systems AN/ASQ-239 electronic warfare suite (detection part): radar warning, emitter location and identification all around the aircraft.</Description>
+    <TechnologicalData>
+      <Parameter name="Role" dataType="SensorRoleEnum"><DefaultValue>ElectronicSupport</DefaultValue></Parameter>
+      <Parameter name="Generation" dataType="SensorGenerationEnum"><DefaultValue>Early2010s</DefaultValue></Parameter>
+      <Parameter name="MaxRange" dataType="DistanceMeters"><DefaultValue>450000</DefaultValue></Parameter>
+      <Parameter name="Capabilities" dataType="SensorCapabilities">
+        <DefaultValue><Item>AirSearch</Item><Item>SurfaceSearch</Item><Item>LandSearch</Item><Item>Classification</Item><Item>Identification</Item></DefaultValue>
+      </Parameter>
+      <Parameter name="FrequencyBands" dataType="NatoBands">
+        <DefaultValue><Item>C</Item><Item>D</Item><Item>E</Item><Item>F</Item><Item>G</Item><Item>H</Item><Item>I</Item><Item>J</Item><Item>K</Item></DefaultValue>
+      </Parameter>
+      <Parameter name="Sensitivity" dataType="PowerDecibelMilliwatts"><DefaultValue>-75</DefaultValue></Parameter>
+      <Parameter name="BearingAccuracy" dataType="AngleDegrees"><DefaultValue>1</DefaultValue></Parameter>
+    </TechnologicalData>
+  </EquipmentDefinition>
+
+  <EquipmentDefinition name="AAQ37DAS" base="InfraredSensor">
+    <Description>Northrop Grumman AN/AAQ-37 Distributed Aperture System: six infrared cameras giving spherical coverage, for missile warning and situational awareness.</Description>
+    <TechnologicalData>
+      <Parameter name="Role" dataType="SensorRoleEnum"><DefaultValue>MissileApproachWarning</DefaultValue></Parameter>
+      <Parameter name="Generation" dataType="SensorGenerationEnum"><DefaultValue>Early2010s</DefaultValue></Parameter>
+      <Parameter name="MaxRange" dataType="DistanceMeters"><DefaultValue>40000</DefaultValue></Parameter>
+      <Parameter name="Capabilities" dataType="SensorCapabilities">
+        <DefaultValue><Item>AirSearch</Item><Item>HeadingInformation</Item></DefaultValue>
+      </Parameter>
+      <Parameter name="Band" dataType="InfraredBandEnum"><DefaultValue>MidWave</DefaultValue></Parameter>
+      <Parameter name="Imaging" dataType="HLAboolean"><DefaultValue>HLAtrue</DefaultValue></Parameter>
+    </TechnologicalData>
+  </EquipmentDefinition>
+
+  <EquipmentDefinition name="AAQ40EOTS" base="InfraredSensor">
+    <Description>Lockheed Martin AN/AAQ-40 Electro-Optical Targeting System under the nose: FLIR and infrared search and track, mainly looking forward and down.</Description>
+    <TechnologicalData>
+      <Parameter name="Role" dataType="SensorRoleEnum"><DefaultValue>TargetingPod</DefaultValue></Parameter>
+      <Parameter name="Generation" dataType="SensorGenerationEnum"><DefaultValue>Early2010s</DefaultValue></Parameter>
+      <Parameter name="MaxRange" dataType="DistanceMeters"><DefaultValue>80000</DefaultValue></Parameter>
+      <Parameter name="Capabilities" dataType="SensorCapabilities">
+        <DefaultValue><Item>AirSearch</Item><Item>SurfaceSearch</Item><Item>LandSearch</Item><Item>HeadingInformation</Item><Item>Classification</Item><Item>Identification</Item></DefaultValue>
+      </Parameter>
+      <Parameter name="DetectionArcs" dataType="SensorArcs">
+        <DefaultValue><Item><Field name="AzimuthStart">270</Field><Field name="AzimuthEnd">90</Field><Field name="ElevationMin">-90</Field><Field name="ElevationMax">15</Field></Item></DefaultValue>
+      </Parameter>
+      <Parameter name="Band" dataType="InfraredBandEnum"><DefaultValue>MidWave</DefaultValue></Parameter>
+      <Parameter name="Imaging" dataType="HLAboolean"><DefaultValue>HLAtrue</DefaultValue></Parameter>
+    </TechnologicalData>
+  </EquipmentDefinition>
+
+</EquipmentLibrary>

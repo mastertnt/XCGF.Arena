@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Entity xmlns="urn:xcgf:data:1.0" name="F35A" disType="1.2.225.1.26.1.0" environment="Air" folder="Aircraft/Fighter">
+  <Description>Lockheed Martin F-35A Lightning II stealth multirole fighter with its signature, AN/APG-81 radar, AN/ASQ-239 electronic support, AN/AAQ-37 distributed aperture system and AN/AAQ-40 electro-optical targeting system. Weapons are not described yet. DIS type 1.2.225.1.26.1.0: air platform, United States, fighter (illustrative subcategory).</Description>
+  <Kinematic definition="F35AKinematic">
+    <Description>F-35A kinematic, with its default initial state.</Description>
+  </Kinematic>
+  <Equipments>
+    <Equipment name="Signature" definition="F35ASignature"/>
+    <Equipment name="Radar" definition="APG81Radar"/>
+    <Equipment name="ESM" definition="ASQ239ESM"/>
+    <Equipment name="DAS" definition="AAQ37DAS"/>
+    <Equipment name="EOTS" definition="AAQ40EOTS"/>
+  </Equipments>
+  <Tasks>
+    <TaskRef task="MoveTo"/>
+    <TaskRef task="FollowFlightPlan"/>
+  </Tasks>
+</Entity>
