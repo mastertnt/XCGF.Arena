@@ -60,6 +60,7 @@ the archetypes described by [XCGF.Data](https://github.com/mastertnt/XCGF.Data).
 | `XCGF.Arena.Systems` | `KinematicSystem`, `TaskSystem`, `SensorSystem` (Friflo `QuerySystem`s), the behaviours of the standard movement tasks (`MoveTo`, `FollowCourse`, `HoldPosition`) and the sensor models. |
 | `XCGF.Arena.Dis` | `DisSystem`: entity states for DIS (geocentric location, velocity and orientation, entity type from `disType`), sent to an `IDisPublisher`; `UdpDisPublisher` encodes them as DIS 7 Entity State PDUs with [OpenDisNet](https://github.com/RejectKid/OpenDisNet). |
 | `XCGF.Arena.Scenarios` | Scripted scenarios (`IScenario`, `TwoFightersScenario`) and `ArenaJournal`, which logs task transitions and radar contacts. |
+| `XCGF.Arena.Blueprints` | Blueprint graphs (Event / Action / Pure nodes) run as fibers by `BlueprintRuntime` and `BlueprintSystem`; `CircularZone` and `ZoneDetectionSystem`; standard nodes in `XCGF.Arena.Blueprints.Nodes`. |
 | `XCGF.Arena` | `ArenaSimulation`: store, factory, systems and simulation clock wired together. `ArenaRunner`: loads a library, plays a scenario, writes the journal. |
 
 How the models map to the components:
@@ -104,4 +105,39 @@ arena.Tasks.Assign(fighter, "MoveTo", new Dictionary<string, DataValue>
 });
 arena.Run(TimeSpan.FromMinutes(10), TimeSpan.FromSeconds(1));
 Entity radar = fighter.FindEquipment("Radar");
+```
+
+## Blueprints
+
+A blueprint is a graph of nodes attached to an entity, in the manner of visual scripting:
+
+- an **Event** node subscribes when the graph is attached, and starts a **fiber** at each firing (`OnStart`,
+  `OnZoneEnter`). Its `RetriggerPolicy` tells what a firing does while a fiber of the event runs: `Parallel`, `Ignore`,
+  `Restart` or `Once`;
+- an **Action** node runs in a fiber, through exec links. It changes the world (`SetSpeed`, `SetHeading`,
+  `SetEquipmentParameter`, `AssignTask`, `RaiseTaskEvent`, `LogMessage`), waits (`Delay`, latent) or chooses an exec
+  output (`Branch`);
+- a **Pure** node computes values on demand for the data inputs, without changing the world (`Self`, `GetHeading`,
+  `GetSpeed`, `GetAltitude`, `Add`, `Subtract`, `AddHeading`, `GreaterThan`).
+
+A fiber is a Friflo entity (`FiberState`, `FiberWait`, `FiberReady`): the graph is interpreted, its program counter
+is the id of the current node. `ArenaSimulation` runs `ZoneDetectionSystem` then `BlueprintSystem` after the sensors,
+so the graphs react to the events of the step. New nodes implement `IEventNode`, `IActionNode` or `IPureNode`.
+
+```csharp
+Entity zone = arena.Store.CreateEntity(new CircularZone(new GeoPosition(48.9, 2.1, 0), 5000));
+
+BlueprintGraph graph = new BlueprintGraph("radar-patrol");
+int onStart = graph.Add(new OnStart());
+graph.Exec(onStart, graph.Add(new SetSpeed(), 200.0));
+
+int onEnter = graph.Add(new OnZoneEnter(), zone);
+int radarOff = graph.Add(new SetEquipmentParameter(arena.Library), "Radar", "Mode", "Off");
+int wait = graph.Add(new Delay(), 30.0);
+int radarOn = graph.Add(new SetEquipmentParameter(arena.Library), "Radar", "Mode", "Search");
+graph.Exec(onEnter, radarOff);
+graph.Exec(radarOff, wait);
+graph.Exec(wait, radarOn);
+
+arena.Blueprints.Attach(fighter, arena.Blueprints.RegisterGraph(graph));
 ```

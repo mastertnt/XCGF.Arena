@@ -1,5 +1,6 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using XCGF.Arena.Blueprints;
 using XCGF.Arena.Data;
 using XCGF.Arena.Spawning;
 using XCGF.Arena.Systems;
@@ -25,10 +26,13 @@ public sealed class ArenaSimulation
         Tasks = new TaskSystem(pLibrary);
         Kinematics = new KinematicSystem();
         Sensors = new SensorSystem();
+        Blueprints = new BlueprintRuntime(Store);
         Systems = new SystemRoot(Store, "Arena");
         Systems.Add(Tasks);
         Systems.Add(Kinematics);
         Systems.Add(Sensors);
+        Systems.Add(new ZoneDetectionSystem(Blueprints));
+        Systems.Add(new BlueprintSystem(Blueprints));
     }
 
     /// <summary>
@@ -62,8 +66,14 @@ public sealed class ArenaSimulation
     public SensorSystem Sensors { get; }
 
     /// <summary>
+    /// Gets the blueprint runtime, used to register graphs and attach them to entities.
+    /// </summary>
+    public BlueprintRuntime Blueprints { get; }
+
+    /// <summary>
     /// Gets the systems, run in order at each step: tasks, kinematics, then sensors, so that sensors see the positions
-    /// reached during the step. More systems can be added.
+    /// reached during the step; then zone detection and blueprints, so that the graphs react to the events of the step.
+    /// More systems can be added.
     /// </summary>
     public SystemRoot Systems { get; }
 
