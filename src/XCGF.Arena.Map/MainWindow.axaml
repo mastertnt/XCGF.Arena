@@ -1,0 +1,25 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:mapsui="clr-namespace:Mapsui.UI.Avalonia;assembly=Mapsui.UI.Avalonia"
+        x:Class="XCGF.Arena.Map.MainWindow"
+        Title="XCGF.Arena - Carte"
+        Width="1200" Height="800">
+  <DockPanel>
+    <Border DockPanel.Dock="Top" Padding="8" Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button x:Name="PlayButton" Content="▶ Play" Click="OnPlay" />
+        <Button x:Name="PauseButton" Content="⏸ Pause" Click="OnPause" />
+        <Button x:Name="StopButton" Content="⏹ Stop" Click="OnStop" />
+        <TextBlock Text="Vitesse" VerticalAlignment="Center" Margin="16,0,0,0" />
+        <ComboBox x:Name="SpeedBox" SelectedIndex="1" SelectionChanged="OnSpeedChanged" VerticalAlignment="Center">
+          <ComboBoxItem Content="x1" Tag="1" />
+          <ComboBoxItem Content="x10" Tag="10" />
+          <ComboBoxItem Content="x60" Tag="60" />
+        </ComboBox>
+        <TextBlock x:Name="ClockText" VerticalAlignment="Center" Margin="16,0,0,0" FontFamily="monospace" />
+        <TextBlock x:Name="StateText" VerticalAlignment="Center" Margin="16,0,0,0" />
+      </StackPanel>
+    </Border>
+    <mapsui:MapControl x:Name="MapView" />
+  </DockPanel>
+</Window>
