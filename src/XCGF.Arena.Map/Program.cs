@@ -12,7 +12,7 @@ internal static class Program
     private static readonly TimeSpan sStep = TimeSpan.FromSeconds(1);
 
     /// <summary>
-    /// Starts the application. Usage: XCGF.Arena.Map [--library &lt;path&gt;].
+    /// Starts the application. Usage: XCGF.Arena.Map [--library &lt;path&gt;] [--scenario scripted|blueprint].
     /// </summary>
     /// <param name="pArguments">The command line arguments.</param>
     [STAThread]
@@ -31,20 +31,52 @@ internal static class Program
     }
 
     /// <summary>
-    /// Creates the player of the two fighters scenario, on the library given by --library or on the arena library.
+    /// Gets the scenarios offered, the first one by default.
+    /// </summary>
+    public static IReadOnlyList<ScenarioChoice> Scenarios { get; } = new[]
+    {
+        new ScenarioChoice("scripted", "Deux chasseurs (script)", () => new TwoFightersScenario()),
+        new ScenarioChoice("blueprint", "Deux chasseurs (blueprints)", () => new BlueprintFightersScenario(Console.Out)),
+    };
+
+    /// <summary>
+    /// Loads the library given by --library, or else the arena library.
     /// </summary>
     /// <param name="pArguments">The command line arguments.</param>
-    /// <returns>The player, stopped.</returns>
-    public static ArenaPlayer CreatePlayer(string[] pArguments)
+    /// <returns>The archetypes.</returns>
+    public static ArchetypeLibrary LoadLibrary(string[] pArguments)
     {
-        string lLibrary = Path.Combine(AppContext.BaseDirectory, "ArenaLibrary", "library.xml");
-        int lIndex = Array.IndexOf(pArguments, "--library");
-        if (lIndex >= 0 && lIndex + 1 < pArguments.Length)
-        {
-            lLibrary = pArguments[lIndex + 1];
-        }
+        string lLibrary = OptionValue(pArguments, "--library") ?? Path.Combine(AppContext.BaseDirectory, "ArenaLibrary", "library.xml");
+        return XcgfDataLoader.Load(lLibrary);
+    }
 
-        ArchetypeLibrary lArchetypes = XcgfDataLoader.Load(lLibrary);
-        return new ArenaPlayer(lArchetypes, () => new TwoFightersScenario(), sStep, Console.Out);
+    /// <summary>
+    /// Finds the scenario given by --scenario, or else the first one.
+    /// </summary>
+    /// <param name="pArguments">The command line arguments.</param>
+    /// <returns>The index of the scenario in <see cref="Scenarios"/>.</returns>
+    public static int SelectScenario(string[] pArguments)
+    {
+        string? lKey = OptionValue(pArguments, "--scenario");
+        int lIndex = Scenarios.ToList().FindIndex(pChoice => string.Equals(pChoice.Key, lKey, StringComparison.OrdinalIgnoreCase));
+        return Math.Max(lIndex, 0);
+    }
+
+    /// <summary>
+    /// Creates the player of a scenario.
+    /// </summary>
+    /// <param name="pLibrary">The archetypes.</param>
+    /// <param name="pScenario">The scenario.</param>
+    /// <returns>The player, stopped.</returns>
+    public static ArenaPlayer CreatePlayer(ArchetypeLibrary pLibrary, ScenarioChoice pScenario)
+    {
+        ArgumentNullException.ThrowIfNull(pScenario);
+        return new ArenaPlayer(pLibrary, pScenario.Create, sStep, Console.Out);
+    }
+
+    private static string? OptionValue(string[] pArguments, string pOption)
+    {
+        int lIndex = Array.IndexOf(pArguments, pOption);
+        return lIndex >= 0 && lIndex + 1 < pArguments.Length ? pArguments[lIndex + 1] : null;
     }
 }
