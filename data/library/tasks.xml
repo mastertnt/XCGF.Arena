@@ -1,45 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <TaskLibrary xmlns="urn:xcgf:data:1.0">
-  <Description>Tasks of the example library, referenced by equipments, entities and units through TaskRef.</Description>
-
-  <TaskDefinition name="MoveTo">
-    <Description>Move to a geographic position, ignoring altitude.</Description>
-    <WhoTaskee>
-      <Parameter name="Executor" dataType="EntityReference">
-        <Description>Entity that moves. Defaults to the carrier of the task.</Description>
-      </Parameter>
-    </WhoTaskee>
-    <What>
-      <Parameter name="Speed" dataType="SpeedMetersPerSecond">
-        <Description>Speed held during the move.</Description>
-        <DefaultValue>250</DefaultValue>
-        <Constraints>
-          <Min value="0" inclusive="false"/>
-        </Constraints>
-      </Parameter>
-    </What>
-    <When>
-      <Parameter name="TravelTime" dataType="DurationSeconds" direction="Out">
-        <Description>Time actually spent reaching the destination, set by the task when it ends.</Description>
-      </Parameter>
-    </When>
-    <Where>
-      <Parameter name="Destination" dataType="GeoPoint2D" required="true">
-        <Description>Point to reach. Altitude is ignored: the executor keeps its current altitude.</Description>
-      </Parameter>
-    </Where>
-    <ActivationTrigger>
-      <Immediate/>
-    </ActivationTrigger>
-    <ExitTriggers>
-      <ExitTrigger outcome="Success">
-        <OnPositionReached parameter="Destination" tolerance="500"/>
-      </ExitTrigger>
-      <ExitTrigger outcome="Failure">
-        <AtTime delay="PT1H"/>
-      </ExitTrigger>
-    </ExitTriggers>
-  </TaskDefinition>
+  <Description>Tasks of the example library, referenced by equipments, entities and units through TaskRef. The movement tasks (MoveTo, FollowCourse...) come from the standard library (library/tasks/kinematics.xml).</Description>
 
   <TaskDefinition name="FireOnTarget">
     <Description>Fire on a target.</Description>
@@ -86,44 +47,6 @@
       </ExitTrigger>
       <ExitTrigger outcome="Aborted">
         <OnEvent event="CeaseFire"/>
-      </ExitTrigger>
-    </ExitTriggers>
-  </TaskDefinition>
-
-  <TaskDefinition name="FollowFlightPlan">
-    <Description>Follow a flight plan.</Description>
-    <WhoTaskee>
-      <Parameter name="Executor" dataType="EntityReference">
-        <Description>Entity that flies the plan. Defaults to the carrier of the task.</Description>
-      </Parameter>
-    </WhoTaskee>
-    <What>
-      <Parameter name="Loop" dataType="HLAboolean">
-        <Description>Whether the plan restarts from its first waypoint once the last one is reached.</Description>
-        <DefaultValue>HLAfalse</DefaultValue>
-      </Parameter>
-    </What>
-    <Where>
-      <Parameter name="Plan" dataType="FlightPlan" required="true">
-        <Description>Waypoints to fly through, in order.</Description>
-      </Parameter>
-      <Parameter name="CurrentWaypoint" dataType="Count" direction="InOut">
-        <Description>Index of the waypoint flown towards. Set to choose the starting waypoint; the task updates it as each waypoint is reached.</Description>
-        <DefaultValue>0</DefaultValue>
-        <Constraints>
-          <Min value="0"/>
-        </Constraints>
-      </Parameter>
-    </Where>
-    <ActivationTrigger>
-      <OnTaskEnd task="MoveTo" outcome="Success"/>
-    </ActivationTrigger>
-    <ExitTriggers>
-      <ExitTrigger outcome="Success">
-        <CustomTrigger kind="FlightPlanCompleted"/>
-      </ExitTrigger>
-      <ExitTrigger outcome="Aborted">
-        <OnCondition expression="Fuel &lt; 0.1"/>
       </ExitTrigger>
     </ExitTriggers>
   </TaskDefinition>

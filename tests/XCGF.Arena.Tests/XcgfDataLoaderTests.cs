@@ -38,7 +38,9 @@ public class XcgfDataLoaderTests
         Assert.Superset(
             new HashSet<string> { "Kinematic", "FixedWingKinematic", "Sensor", "Radar", "ESM", "InfraredSensor", "VisualSensor", "Signature", "FighterRadar" },
             lLibrary.EquipmentDefinitions.Keys.ToHashSet());
-        Assert.Equal(new[] { "ChangeFormation", "FireOnTarget", "FollowFlightPlan", "MoveTo" }, lLibrary.Tasks.Keys.Order());
+        Assert.Equal(
+            new[] { "ChangeFormation", "FireOnTarget", "FollowCourse", "HoldPosition", "Land", "MoveTo", "Orbit", "ReturnToBase", "SetAltitude", "TakeOff" },
+            lLibrary.Tasks.Keys.Order());
         Assert.Equal(new[] { "F35A", "Fighter", "Rafale" }, lLibrary.Entities.Keys.Order());
         Assert.Equal(new[] { "FighterPatrol" }, lLibrary.Units.Keys);
         Assert.Empty(lLibrary.Validate());
@@ -71,7 +73,7 @@ public class XcgfDataLoaderTests
         Assert.Equal("FighterKinematic", lFighter.Kinematic.Definition);
         Assert.Equal("250", Assert.Single(lFighter.Kinematic.InitializationData).DefaultValue!.Text);
         Assert.Equal(new[] { "Signature", "Radar", "RWR", "IRST", "Missile_1", "Missile_2" }, lFighter.Equipments.Select(pEquipment => pEquipment.Name));
-        Assert.Equal(new[] { "MoveTo", "FireOnTarget", "FollowFlightPlan" }, lFighter.Tasks.Select(pTask => pTask.Task));
+        Assert.Equal(new[] { "FireOnTarget" }, lFighter.Tasks.Select(pTask => pTask.Task));
         Assert.Equal(new[] { "Leader", "Wingman" }, lPatrol.Members.Select(pMember => pMember.Role));
         Assert.All(lPatrol.Members, pMember => Assert.Equal(("Fighter", false, 1), (pMember.Archetype, pMember.IsUnit, pMember.Count)));
         Assert.Equal("Line", lPatrol.Tasks.Single(pTask => pTask.Task == "ChangeFormation").Parameters.Single().DefaultValue!.Text);
@@ -82,7 +84,7 @@ public class XcgfDataLoaderTests
     {
         TaskDefinition lMoveTo = TestLibrary.Example.GetTask("MoveTo");
         TaskDefinition lFire = TestLibrary.Example.GetTask("FireOnTarget");
-        TaskDefinition lPlan = TestLibrary.Example.GetTask("FollowFlightPlan");
+        TaskDefinition lCourse = TestLibrary.Example.GetTask("FollowCourse");
 
         GroupedTaskParameter lDestination = lMoveTo.FindParameter("Destination")!;
         Assert.Equal(TaskParameterGroup.Where, lDestination.Group);
@@ -90,12 +92,19 @@ public class XcgfDataLoaderTests
         Assert.Equal(ParameterDirection.Out, lMoveTo.FindParameter("TravelTime")!.Parameter.Direction);
         Assert.IsType<ImmediateTrigger>(lMoveTo.ActivationTrigger);
         Assert.Equal(new OnPositionReachedTrigger("Destination", 500), lMoveTo.ExitTriggers[0].Trigger);
-        Assert.Equal(new ExitTrigger("Failure", new AtTimeTrigger(TimeSpan.FromHours(1))), lMoveTo.ExitTriggers[1]);
+        Assert.Equal(new ExitTrigger("Aborted", new OnEventTrigger("OrderCancelled")), lMoveTo.ExitTriggers[1]);
         Assert.Equal(new OnConditionTrigger("InRange(Weapon, Target)"), lFire.ActivationTrigger);
         Assert.Equal(new[] { "Success", "Failure", "Aborted" }, lFire.ExitTriggers.Select(pExit => pExit.Outcome));
         Assert.Equal(TaskParameterGroup.WhoTasker, lFire.Parameters[0].Group);
-        Assert.Equal(new OnTaskEndTrigger("MoveTo", "Success"), lPlan.ActivationTrigger);
-        Assert.Equal(ParameterDirection.InOut, lPlan.FindParameter("CurrentWaypoint")!.Parameter.Direction);
+        Assert.Equal("CourseCompleted", Assert.IsType<CustomTrigger>(lCourse.ExitTriggers[0].Trigger).Kind);
+        Assert.Equal(ParameterDirection.InOut, lCourse.FindParameter("CurrentWaypoint")!.Parameter.Direction);
+
+        // FixedWingKinematic bounds the standard tasks by its own data.
+        EquipmentDefinition lFixedWing = TestLibrary.Example.EquipmentDefinitions["FixedWingKinematic"];
+        TaskRef lMoveToRef = lFixedWing.Tasks.Single(pRef => pRef.Task == "MoveTo");
+        Assert.Equal(
+            new DataConstraint[] { new BoundConstraint(BoundKind.Min, null, "StallSpeed", true), new BoundConstraint(BoundKind.Max, null, "MaxSpeed", true) },
+            lMoveToRef.Parameters.Single().Constraints);
     }
 
     [Fact]
@@ -140,7 +149,7 @@ public class XcgfDataLoaderTests
         {
             "../XCGF.Data/library/types/core.xml", "../XCGF.Data/library/types/equipment.xml",
             "../XCGF.Data/library/equipments/kinematics.xml", "../XCGF.Data/library/equipments/signatures.xml",
-            "../XCGF.Data/library/equipments/sensors.xml", "equipments.xml", "tasks.xml", "entities/fighter.xml", "units.xml",
+            "../XCGF.Data/library/equipments/sensors.xml", "../XCGF.Data/library/tasks/kinematics.xml", "equipments.xml", "tasks.xml", "entities/fighter.xml", "units.xml",
         };
 
         ArchetypeLibrary lLibrary = XcgfDataLoader.Load(lFiles.Select(TestLibrary.PathOf).ToArray());

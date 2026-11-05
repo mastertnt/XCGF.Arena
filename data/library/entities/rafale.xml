@@ -11,8 +11,4 @@
     <Equipment name="MissileWarner" definition="SpectraMissileWarner"/>
     <Equipment name="IRST" definition="OSFIrst"/>
   </Equipments>
-  <Tasks>
-    <TaskRef task="MoveTo"/>
-    <TaskRef task="FollowFlightPlan"/>
-  </Tasks>
 </Entity>

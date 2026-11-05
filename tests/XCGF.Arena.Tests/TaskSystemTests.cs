@@ -28,7 +28,8 @@ public class TaskSystemTests
         TaskInstance lTask = mTasks.Assign(lFighter, "MoveTo", Destination(0, 0.1));
 
         Assert.Equal(TaskState.Pending, lTask.State);
-        Assert.Equal(new NumberValue(250), lTask.Parameters["Speed"]);
+        Assert.Equal(new EnumValue("Cruise", 1), lTask.Parameters["Throttle"]);
+        Assert.Null(lTask.Parameters["Speed"]);
         Assert.Equal(new ReferenceValue(lFighter), lTask.Parameters["Executor"]);
         Assert.Null(lTask.Parameters["TravelTime"]);
         Assert.Same(lTask, lFighter.GetComponent<AssignedTasks>().Items.Single());
@@ -69,6 +70,18 @@ public class TaskSystemTests
     }
 
     [Fact]
+    public void Assign_SpeedOutsideTheFlightEnvelope_Throws()
+    {
+        Entity lFighter = mFactory.SpawnEntity("Fighter");
+        Dictionary<string, DataValue> lValues = new Dictionary<string, DataValue>(Destination(0, 1)) { ["Speed"] = new NumberValue(700) };
+
+        XcgfDataException lError = Assert.Throws<XcgfDataException>(() => mTasks.Assign(lFighter, "MoveTo", lValues));
+
+        // The bound comes from the TaskRef of FixedWingKinematic, read against the data of the fighter's kinematic.
+        Assert.Contains("'Speed' = 700 must be <= 590 (MaxSpeed)", lError.Message);
+    }
+
+    [Fact]
     public void Assign_OutParameterOrUnknownParameter_Throws()
     {
         Entity lFighter = mFactory.SpawnEntity("Fighter");
@@ -80,7 +93,7 @@ public class TaskSystemTests
     }
 
     [Fact]
-    public void MoveTo_FliesToDestinationAndSucceeds()
+    public void MoveTo_FliesToDestinationAtCruiseSpeedAndSucceeds()
     {
         Entity lFighter = mFactory.SpawnEntity("Fighter");
         TaskInstance lTask = mTasks.Assign(lFighter, "MoveTo", Destination(0.1, 0.1));
@@ -90,51 +103,124 @@ public class TaskSystemTests
         Assert.Equal(TaskState.Running, lTask.State);
         Assert.Equal(45, lFighter.GetComponent<Kinematic>().Orientation.Heading, 0);
 
+        // Cruise row of the FighterKinematic performance table, for the 0 to 2000 m band.
+        Assert.Equal(230, lFighter.GetComponent<Kinematic>().Speed);
+
         RunUntil(() => lTask.State == TaskState.Ended, TimeSpan.FromHours(1));
 
         Assert.Equal("Success", lTask.Outcome);
         Assert.True(GeoMath.Distance(lFighter.GetComponent<Kinematic>().Position, new GeoPosition(0.1, 0.1, 0)) <= 500);
         double lTravelTime = lTask.Parameters["TravelTime"]!.AsNumber()!.Value;
-        Assert.InRange(lTravelTime, (lDistance - 500) / 250 - 2, (lDistance / 250) + 2);
+        Assert.InRange(lTravelTime, (lDistance - 500) / 230 - 2, (lDistance / 230) + 2);
     }
 
     [Fact]
-    public void MoveTo_UnreachedAfterOneHour_Fails()
+    public void MoveTo_ClimbsToTheDestinationAltitudeWithinTheClimbRate()
+    {
+        Entity lFighter = mFactory.SpawnEntity("Fighter");
+        Dictionary<string, DataValue> lValues = new Dictionary<string, DataValue>
+        {
+            ["Destination"] = new GeoPosition(0, 2, 3000).ToValue(),
+            ["Speed"] = new NumberValue(300),
+        };
+        mTasks.Assign(lFighter, "MoveTo", lValues);
+        double lClimbRate = lFighter.FindEquipment("Kinematic").GetComponent<EquipmentData>().Technological.GetNumber("ClimbRate")!.Value;
+
+        mSimulation.Step(sStep);
+        Assert.InRange(lFighter.GetComponent<Kinematic>().Position.Altitude, 1, lClimbRate + 1);
+
+        mSimulation.Run(TimeSpan.FromMinutes(3), sStep);
+        Assert.InRange(lFighter.GetComponent<Kinematic>().Position.Altitude, 2990, 3010);
+        Assert.Equal(300, lFighter.GetComponent<Kinematic>().Speed);
+    }
+
+    [Fact]
+    public void MoveTo_OrderCancelled_Aborts()
     {
         Entity lFighter = mFactory.SpawnEntity("Fighter");
         TaskInstance lTask = mTasks.Assign(lFighter, "MoveTo", Destination(0, 179));
+        mSimulation.Step(sStep);
 
-        mSimulation.Run(TimeSpan.FromHours(1) + TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        mTasks.RaiseEvent(lFighter, "OrderCancelled");
+        mSimulation.Step(sStep);
 
         Assert.Equal(TaskState.Ended, lTask.State);
-        Assert.Equal("Failure", lTask.Outcome);
-        Assert.Equal(TimeSpan.FromMinutes(61), lTask.EndedAt);
+        Assert.Equal("Aborted", lTask.Outcome);
     }
 
     [Fact]
-    public void FollowFlightPlan_StartsWhenMoveToSucceeds()
+    public void FollowCourse_GoesThroughTheWaypointsInOrderAndCompletes()
     {
         Entity lFighter = mFactory.SpawnEntity("Fighter");
-        TaskInstance lMove = mTasks.Assign(lFighter, "MoveTo", Destination(0, 0.02));
-        Dictionary<string, DataValue> lPlan = new Dictionary<string, DataValue>
+        Dictionary<string, DataValue> lCourse = new Dictionary<string, DataValue>
         {
-            ["Plan"] = new ArrayValue(new DataValue[] { RecordValue.Of(("Position", new GeoPosition(0, 1, 0).ToValue()), ("Speed", new NumberValue(250))) }),
+            ["Waypoints"] = new ArrayValue(new DataValue[]
+            {
+                RecordValue.Of(("Position", new GeoPosition(0, 0.05, 0).ToValue()), ("Speed", new NumberValue(300))),
+                RecordValue.Of(("Position", new GeoPosition(0.05, 0.05, 0).ToValue())),
+            }),
         };
-        TaskInstance lFollow = mTasks.Assign(lFighter, "FollowFlightPlan", lPlan);
-        bool lCompleted = false;
-        mTasks.RegisterCustomTrigger("FlightPlanCompleted", (pContext, pTrigger) => lCompleted);
+        TaskInstance lTask = mTasks.Assign(lFighter, "FollowCourse", lCourse);
 
-        RunUntil(() => lMove.State == TaskState.Ended, TimeSpan.FromMinutes(10));
-
-        Assert.Equal("Success", lMove.Outcome);
-        Assert.Equal(TaskState.Running, lFollow.State);
-        Assert.Equal(lMove.EndedAt, lFollow.StartedAt);
-        Assert.Equal(new IntegerValue(0), lFollow.Parameters["CurrentWaypoint"]);
-        Assert.Equal(new EnumValue("HLAfalse", 0), lFollow.Parameters["Loop"]);
-
-        lCompleted = true;
         mSimulation.Step(sStep);
-        Assert.Equal("Success", lFollow.Outcome);
+        Assert.Equal(90, lFighter.GetComponent<Kinematic>().Orientation.Heading, 0);
+        Assert.Equal(300, lFighter.GetComponent<Kinematic>().Speed);
+
+        RunUntil(() => lTask.Parameters["CurrentWaypoint"] is IntegerValue { Value: 1 }, TimeSpan.FromMinutes(10));
+        mSimulation.Step(sStep);
+
+        // Heading north, give or take the 500 m tolerance of the first waypoint.
+        double lHeading = lFighter.GetComponent<Kinematic>().Orientation.Heading;
+        Assert.InRange(lHeading < 180 ? lHeading : lHeading - 360, -5, 5);
+
+        // The second leg gives no speed: the Cruise throttle of the task applies.
+        Assert.Equal(230, lFighter.GetComponent<Kinematic>().Speed);
+
+        RunUntil(() => lTask.State == TaskState.Ended, TimeSpan.FromMinutes(20));
+        Assert.Equal("Success", lTask.Outcome);
+        Assert.True(GeoMath.Distance(lFighter.GetComponent<Kinematic>().Position, new GeoPosition(0.05, 0.05, 0)) <= 500);
+    }
+
+    [Fact]
+    public void FollowCourse_WithLoop_RestartsFromTheFirstWaypoint()
+    {
+        Entity lFighter = mFactory.SpawnEntity("Fighter");
+        Dictionary<string, DataValue> lCourse = new Dictionary<string, DataValue>
+        {
+            ["Waypoints"] = new ArrayValue(new DataValue[] { RecordValue.Of(("Position", new GeoPosition(0, 0.02, 0).ToValue())) }),
+            ["Loop"] = new EnumValue("HLAtrue", 1),
+        };
+        TaskInstance lTask = mTasks.Assign(lFighter, "FollowCourse", lCourse);
+
+        mSimulation.Run(TimeSpan.FromMinutes(5), sStep);
+
+        Assert.Equal(TaskState.Running, lTask.State);
+        Assert.Equal(new IntegerValue(0), lTask.Parameters["CurrentWaypoint"]);
+    }
+
+    [Fact]
+    public void HoldPosition_CirclesAroundTheHoldPointUntilTheDurationElapses()
+    {
+        Entity lFighter = mFactory.SpawnEntity("Fighter");
+        TaskInstance lTask = mTasks.Assign(lFighter, "HoldPosition", new Dictionary<string, DataValue> { ["Duration"] = new NumberValue(300) });
+        double lFarthest = 0;
+
+        mSimulation.Step(sStep);
+        GeoPosition lHoldPoint = GeoPosition.FromValue(lTask.Parameters["HoldPoint"]!);
+        Assert.Equal(0, lHoldPoint.Latitude, 6);
+        RunUntil(
+            () =>
+            {
+                lFarthest = Math.Max(lFarthest, GeoMath.Distance(lFighter.GetComponent<Kinematic>().Position, lHoldPoint));
+                return lTask.State == TaskState.Ended;
+            },
+            TimeSpan.FromMinutes(10));
+
+        // A fighter cannot stop: it loiters at 110 m/s and stays close to the point.
+        Assert.Equal(110, lFighter.GetComponent<Kinematic>().Speed);
+        Assert.InRange(lFarthest, 1, 1000);
+        Assert.Equal("Success", lTask.Outcome);
+        Assert.Equal(TimeSpan.FromSeconds(301), lTask.EndedAt);
     }
 
     [Fact]

@@ -8,7 +8,7 @@
     <PackageReference Include="Friflo.Engine.ECS" Version="3.6.0" />
     <PackageReference Include="GeographicLib.NET" Version="2.3.2" />
     <PackageReference Include="OpenDisNet" Version="1.2.0" />
-    <PackageReference Include="XCGF.Data" Version="0.1.1" ExcludeAssets="contentFiles" />
+    <PackageReference Include="XCGF.Data" Version="0.1.2" ExcludeAssets="contentFiles" />
   </ItemGroup>
 
   <ItemGroup>

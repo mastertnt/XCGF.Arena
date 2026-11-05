@@ -61,8 +61,16 @@ public class ArchetypeFactoryTests
         Entity lFighter = mFactory.SpawnEntity("Fighter");
 
         TaskCapabilities lCapabilities = lFighter.GetComponent<TaskCapabilities>();
-        Assert.Equal(new[] { "FireOnTarget", "FollowFlightPlan", "MoveTo" }, lCapabilities.ByTask.Keys.Order());
-        Assert.All(lCapabilities.ByTask.Values, pCapability => Assert.Equal(lFighter, pCapability.Provider));
+        Assert.Equal(
+            new[] { "FireOnTarget", "FollowCourse", "HoldPosition", "Land", "MoveTo", "Orbit", "ReturnToBase", "SetAltitude", "TakeOff" },
+            lCapabilities.ByTask.Keys.Order());
+        Assert.Equal(lFighter, lCapabilities.ByTask["FireOnTarget"].Provider);
+
+        // The movement tasks come from the kinematic, with the bounds FixedWingKinematic adds to those of Kinematic.
+        Entity lKinematic = lFighter.FindEquipment("Kinematic");
+        Assert.Equal(lKinematic, lCapabilities.ByTask["MoveTo"].Provider);
+        Assert.Equal(2, lCapabilities.ByTask["MoveTo"].Defaults.Single(pItem => pItem.Name == "Speed").Constraints.Count);
+        Assert.Contains("MoveTo", lKinematic.GetComponent<TaskCapabilities>().ByTask.Keys);
         Assert.Empty(lFighter.GetComponent<AssignedTasks>().Items);
     }
 

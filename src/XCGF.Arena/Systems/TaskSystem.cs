@@ -12,7 +12,9 @@ namespace XCGF.Arena.Systems;
 /// <see cref="ImmediateTrigger"/>, <see cref="AtTimeTrigger"/>, <see cref="OnTaskEndTrigger"/>,
 /// <see cref="OnPositionReachedTrigger"/> and <see cref="OnEventTrigger"/> are evaluated by the system.
 /// <see cref="OnConditionTrigger"/> and <see cref="CustomTrigger"/> fire only through handlers registered with
-/// <see cref="RegisterCondition"/> and <see cref="RegisterCustomTrigger"/>; without a handler they never fire.
+/// <see cref="RegisterCondition"/> and <see cref="RegisterCustomTrigger"/>; without a handler they never fire. The
+/// behaviours of the standard movement tasks MoveTo, FollowCourse and HoldPosition, and their CourseCompleted and
+/// DurationElapsed triggers, are registered by default.
 /// The system reads the simulation time from <c>Tick.time</c>, the time at the end of the step.
 /// </remarks>
 public sealed class TaskSystem : QuerySystem<AssignedTasks>
@@ -32,6 +34,10 @@ public sealed class TaskSystem : QuerySystem<AssignedTasks>
         ArgumentNullException.ThrowIfNull(pLibrary);
         mLibrary = pLibrary;
         RegisterBehavior(MoveToBehavior.TaskName, new MoveToBehavior());
+        RegisterBehavior(FollowCourseBehavior.TaskName, new FollowCourseBehavior());
+        RegisterBehavior(HoldPositionBehavior.TaskName, new HoldPositionBehavior());
+        RegisterCustomTrigger(FollowCourseBehavior.CourseCompletedKind, FollowCourseBehavior.IsCompleted);
+        RegisterCustomTrigger(HoldPositionBehavior.DurationElapsedKind, HoldPositionBehavior.IsElapsed);
     }
 
     /// <summary>
@@ -92,6 +98,9 @@ public sealed class TaskSystem : QuerySystem<AssignedTasks>
         }
 
         List<string> lErrors = new List<string>();
+        IReadOnlyDictionary<string, DataValue?> lTechnological = !lCapability.Provider.IsNull && lCapability.Provider.TryGetComponent(out EquipmentData lProviderData)
+            ? lProviderData.Technological.Values
+            : new Dictionary<string, DataValue?>();
         foreach (GroupedTaskParameter lGrouped in lDefinition.Parameters)
         {
             TaskParameter lParameter = lGrouped.Parameter;
@@ -114,7 +123,12 @@ public sealed class TaskSystem : QuerySystem<AssignedTasks>
                 continue;
             }
 
-            lErrors.AddRange(mLibrary.CheckConstraints(lParameter, lValue, new Dictionary<string, DataValue?>()));
+            lErrors.AddRange(mLibrary.CheckConstraints(lParameter, lValue, lTechnological));
+            if (lCapability.Defaults.FirstOrDefault(pItem => pItem.Name == lParameter.Name) is { Constraints.Count: > 0 } lRefined)
+            {
+                // Constraints added by the task reference, bounded by the technological data of the provider.
+                lErrors.AddRange(mLibrary.CheckConstraints(lRefined, lValue, lTechnological));
+            }
         }
 
         if (lErrors.Count > 0)

@@ -8,7 +8,7 @@
     <EntityRef entity="Fighter" role="Wingman"/>
     <Tasks>
       <TaskRef task="MoveTo"/>
-      <TaskRef task="FollowFlightPlan"/>
+      <TaskRef task="FollowCourse"/>
       <TaskRef task="ChangeFormation">
         <Description>Capability specific to the patrol. The patrol flies in line abreast unless told otherwise.</Description>
         <Parameter name="Formation" dataType="FormationEnum"><DefaultValue>Line</DefaultValue></Parameter>

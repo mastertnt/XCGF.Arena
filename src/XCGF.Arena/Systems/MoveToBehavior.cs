@@ -5,8 +5,8 @@ using XCGF.Arena.Data;
 namespace XCGF.Arena.Systems;
 
 /// <summary>
-/// Behaviour of the MoveTo task: steers the executor towards Destination at Speed, keeping its altitude, and sets
-/// TravelTime when the task ends.
+/// Behaviour of the MoveTo task of the XCGF.Data standard library: steers the executor towards Destination, climbing
+/// or descending to its altitude, at Speed or else at the speed of Throttle, and sets TravelTime when the task ends.
 /// </summary>
 public sealed class MoveToBehavior : ITaskBehavior
 {
@@ -30,28 +30,21 @@ public sealed class MoveToBehavior : ITaskBehavior
         {
             lTask.Parameters["TravelTime"] = new NumberValue((lEnd - lStart).TotalSeconds);
         }
+
+        if (Movement.ExecutorOf(pContext) is { } lExecutor)
+        {
+            Movement.LevelOff(lExecutor);
+        }
     }
 
     private static void Steer(TaskContext pContext)
     {
-        ArgumentNullException.ThrowIfNull(pContext);
-        TaskInstance lTask = pContext.Task;
-        Entity lExecutor = lTask.Parameters.GetValueOrDefault("Executor") is ReferenceValue lReference ? lReference.Target : pContext.Carrier;
-        if (lExecutor.IsNull || !lExecutor.HasComponent<Kinematic>() || lTask.Parameters.GetValueOrDefault("Destination") is not { } lDestinationValue)
+        if (Movement.ExecutorOf(pContext) is not { } lExecutor || pContext.Task.Parameters.GetValueOrDefault("Destination") is not { } lDestination)
         {
             return;
         }
 
-        ref Kinematic lKinematic = ref lExecutor.GetComponent<Kinematic>();
-        GeoPosition lDestination = GeoPosition.FromValue(lDestinationValue);
-        lKinematic.Orientation = lKinematic.Orientation with
-        {
-            Heading = GeoMath.Bearing(lKinematic.Position, lDestination),
-            Pitch = 0,
-        };
-        if (lTask.Parameters.GetValueOrDefault("Speed")?.AsNumber() is { } lSpeed)
-        {
-            lKinematic.Speed = lSpeed;
-        }
+        GeoPosition lTarget = Movement.PositionOf(lDestination, lExecutor.GetComponent<Kinematic>().Position.Altitude);
+        Movement.SteerTowards(lExecutor, lTarget, Movement.RequestedSpeed(lExecutor, pContext.Task));
     }
 }
