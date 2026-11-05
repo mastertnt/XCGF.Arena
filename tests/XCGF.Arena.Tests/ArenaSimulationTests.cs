@@ -1,5 +1,6 @@
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Systems;
+using XCGF.Arena.Blueprints;
 
 namespace XCGF.Arena.Tests;
 
@@ -20,11 +21,13 @@ public class ArenaSimulationTests
     }
 
     [Fact]
-    public void Constructor_RunsTasksThenKinematicsThenSensors()
+    public void Constructor_RunsTasksThenKinematicsThenSensorsThenBlueprints()
     {
         ArenaSimulation lSimulation = new ArenaSimulation(TestLibrary.Example);
 
-        Assert.Equal(new BaseSystem[] { lSimulation.Tasks, lSimulation.Kinematics, lSimulation.Sensors }, lSimulation.Systems.ChildSystems);
+        Assert.Equal(new BaseSystem[] { lSimulation.Tasks, lSimulation.Kinematics, lSimulation.Sensors }, lSimulation.Systems.ChildSystems.Take(3));
+        Assert.Equal(new[] { typeof(ZoneDetectionSystem), typeof(BlueprintSystem) }, lSimulation.Systems.ChildSystems.Skip(3).Select(pSystem => pSystem.GetType()));
+        Assert.Same(lSimulation.Blueprints, lSimulation.Systems.ChildSystems.OfType<BlueprintSystem>().Single().Runtime);
         Assert.Same(lSimulation.Store, lSimulation.Systems.Stores.Single());
     }
 
