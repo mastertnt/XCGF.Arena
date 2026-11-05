@@ -8,12 +8,15 @@
     <PackageReference Include="Friflo.Engine.ECS" Version="3.6.0" />
     <PackageReference Include="GeographicLib.NET" Version="2.3.2" />
     <PackageReference Include="OpenDisNet" Version="1.2.0" />
+    <PackageReference Include="XCGF.Data" Version="0.1.1" ExcludeAssets="contentFiles" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- XCGF schema and standard library, laid out as the XCGF.Data package copies them: XCGF.Data/schemas, XCGF.Data/library. -->
-    <None Include="..\..\external\XCGF.Data\schemas\**\*.xsd" LinkBase="XCGF.Data\schemas" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="..\..\external\XCGF.Data\library\**\*.xml" LinkBase="XCGF.Data\library" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Copied from the package root rather than through its contentFiles, so that the projects referencing
+         XCGF.Arena (console, tests) get them in their output too. -->
+    <None Include="$(XcgfDataRoot)schemas\**\*.xsd" LinkBase="XCGF.Data\schemas" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(XcgfDataRoot)library\**\*.xml" LinkBase="XCGF.Data\library" CopyToOutputDirectory="PreserveNewest" />
     <!-- Archetypes played by the arena, which include the standard library from ../XCGF.Data/library. -->
     <None Include="..\..\data\library\**\*.xml" LinkBase="ArenaLibrary" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

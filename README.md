@@ -9,19 +9,12 @@ src/XCGF.Arena.Console/         Console host that runs the library
 tests/XCGF.Arena.Tests/         xUnit tests
 data/library/                   Arena library: the scenario archetypes (fighters, tasks, patrol) on top of the
                                 XCGF.Data standard library
-external/XCGF.Data/             XCGF.Data submodule (schemas and standard library)
 ```
 
-The build copies the XCGF.Data schemas and standard library to `XCGF.Data/` and the Arena library to
-`ArenaLibrary/` in the output directory, the layout of the XCGF.Data package.
-
-Clone with the submodule:
-
-```bash
-git clone --recurse-submodules https://github.com/mastertnt/XCGF.Arena.git
-# or, in an existing clone
-git submodule update --init
-```
+XCGF.Data (schemas and standard library) comes from the [XCGF.Data](https://www.nuget.org/packages/XCGF.Data) NuGet
+package, 0.1.1. The build copies its schemas and standard library to `XCGF.Data/` and the Arena library to
+`ArenaLibrary/` in the output directory; `ArenaLibrary/library.xml` includes the standard library through
+`../XCGF.Data/library/...`.
 
 ## Build, test and run
 
