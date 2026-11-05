@@ -11,7 +11,7 @@ internal static class TestLibrary
 
     public static ArchetypeLibrary Example => sExample.Value;
 
-    public static string PathOf(string pFile) => Path.Combine(AppContext.BaseDirectory, "XCGF.Data", "examples", "library", pFile);
+    public static string PathOf(string pFile) => Path.Combine(AppContext.BaseDirectory, "ArenaLibrary", pFile);
 
     public static ArchetypeLibrary FromXml(string pXml)
     {

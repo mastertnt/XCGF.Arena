@@ -160,31 +160,43 @@ public sealed class ArchetypeLibrary
     }
 
     /// <summary>
-    /// Parses a value written in the library according to its data type.
+    /// Parses a value written as text in the library according to its data type.
     /// </summary>
     /// <param name="pDataType">Name of the data type.</param>
     /// <param name="pText">The text.</param>
     /// <returns>The value.</returns>
-    public DataValue ParseValue(string pDataType, string pText)
+    public DataValue ParseValue(string pDataType, string pText) => ParseValue(pDataType, ValueNode.Of(pText));
+
+    /// <summary>
+    /// Parses a value written in the library according to its data type.
+    /// </summary>
+    /// <param name="pDataType">Name of the data type.</param>
+    /// <param name="pValue">The value: text, fields of a record or items of an array.</param>
+    /// <returns>The value.</returns>
+    public DataValue ParseValue(string pDataType, ValueNode pValue)
     {
-        ArgumentNullException.ThrowIfNull(pText);
+        ArgumentNullException.ThrowIfNull(pValue);
         DataTypeDefinition lType = GetDataType(pDataType);
-        string lText = pText.Trim();
         switch (lType)
         {
             case BasicDataType lBasic:
-                return ParseBasic(lBasic, lText);
+                return ParseBasic(lBasic, RequireText(lType, pValue));
             case SimpleDataType lSimple:
-                return ParseValue(lSimple.Representation, lText);
+                return ParseValue(lSimple.Representation, ValueNode.Of(RequireText(lType, pValue)));
             case EnumeratedDataType lEnumerated:
+                string lText = RequireText(lType, pValue);
                 Enumerator lEnumerator = lEnumerated.Find(lText)
                     ?? throw new XcgfDataException($"'{lText}' is not an enumerator of '{lEnumerated.Name}'.");
                 return new EnumValue(lEnumerator.Name, lEnumerator.Value);
-            case ArrayDataType lArray when GetDataType(lArray.ElementType) is BasicDataType { Size: 8 }:
-                return new TextValue(pText);
+            case ArrayDataType lArray:
+                return ParseArray(lArray, pValue);
+            case FixedRecordDataType lRecord:
+                return ParseRecord(lRecord, pValue);
+            case VariantRecordDataType lVariant:
+                return ParseVariant(lVariant, pValue);
             default:
                 throw new XcgfDataException(
-                    $"A default value of type '{lType.Name}' ({lType.GetType().Name}) cannot be written as text; the scenario must supply it.");
+                    $"A default value of type '{lType.Name}' ({lType.GetType().Name}) cannot be written in a library; the scenario must supply it.");
         }
     }
 
@@ -418,27 +430,34 @@ public sealed class ArchetypeLibrary
 
     private void CheckBound(DataItem pItem, BoundConstraint pBound, DataValue pValue, IReadOnlyDictionary<string, DataValue?> pTechnologicalData, List<string> pErrors)
     {
-        double? lActual = pValue.AsNumber();
         double? lLimit = null;
         if (pBound.Value is not null)
         {
-            lLimit = ParseValue(pItem.DataType, pBound.Value).AsNumber();
+            lLimit = double.TryParse(pBound.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double lNumber)
+                ? lNumber
+                : ParseValue(pItem.DataType, pBound.Value).AsNumber();
         }
         else if (pBound.Reference is not null && pTechnologicalData.TryGetValue(pBound.Reference, out DataValue? lReferenced))
         {
             lLimit = lReferenced?.AsNumber();
         }
 
-        if (lActual is null || lLimit is null)
+        if (lLimit is null)
         {
             return;
         }
 
-        bool lValid = pBound.Kind == BoundKind.Min
-            ? (pBound.Inclusive ? lActual >= lLimit : lActual > lLimit)
-            : (pBound.Inclusive ? lActual <= lLimit : lActual < lLimit);
-        if (!lValid)
+        // On a record or an array, the bound applies to every number it holds.
+        foreach ((string lPath, double lActual) in NumbersOf(pItem.Name, pValue))
         {
+            bool lValid = pBound.Kind == BoundKind.Min
+                ? (pBound.Inclusive ? lActual >= lLimit : lActual > lLimit)
+                : (pBound.Inclusive ? lActual <= lLimit : lActual < lLimit);
+            if (lValid)
+            {
+                continue;
+            }
+
             string lOperator = (pBound.Kind, pBound.Inclusive) switch
             {
                 (BoundKind.Min, true) => ">=",
@@ -447,8 +466,115 @@ public sealed class ArchetypeLibrary
                 _ => "<",
             };
             string lSource = pBound.Reference is null ? string.Empty : $" ({pBound.Reference})";
-            pErrors.Add($"'{pItem.Name}' = {pValue} must be {lOperator} {lLimit.Value.ToString(CultureInfo.InvariantCulture)}{lSource}.");
+            string lShown = lActual.ToString(CultureInfo.InvariantCulture);
+            pErrors.Add($"'{lPath}' = {lShown} must be {lOperator} {lLimit.Value.ToString(CultureInfo.InvariantCulture)}{lSource}.");
         }
+    }
+
+    private static IEnumerable<(string Path, double Value)> NumbersOf(string pPath, DataValue pValue)
+    {
+        switch (pValue)
+        {
+            case RecordValue lRecord:
+                return lRecord.Fields.SelectMany(pField => NumbersOf($"{pPath}.{pField.Key}", pField.Value));
+            case ArrayValue lArray:
+                return lArray.Items.SelectMany((pItem, pIndex) => NumbersOf($"{pPath}[{pIndex}]", pItem));
+            case EnumValue:
+                return Array.Empty<(string, double)>();
+            default:
+                return pValue.AsNumber() is { } lNumber ? new[] { (pPath, lNumber) } : Array.Empty<(string, double)>();
+        }
+    }
+
+    private DataValue ParseArray(ArrayDataType pArray, ValueNode pValue)
+    {
+        if (pValue.Fields.Count > 0)
+        {
+            throw new XcgfDataException($"A value of array type '{pArray.Name}' has Item children, not Field children.");
+        }
+
+        if (pValue.Items.Count == 0 && pValue.Text.Length > 0)
+        {
+            // An array of octets written as text is a character string.
+            if (GetDataType(pArray.ElementType) is BasicDataType { Size: 8 })
+            {
+                return new TextValue(pValue.Text);
+            }
+
+            throw new XcgfDataException($"A value of array type '{pArray.Name}' must be written as Item children.");
+        }
+
+        List<DataValue> lItems = pValue.Items.Select(pItem => ParseValue(pArray.ElementType, pItem)).ToList();
+        CheckCardinality(pArray, lItems.Count);
+        return new ArrayValue(lItems);
+    }
+
+    private RecordValue ParseRecord(FixedRecordDataType pRecord, ValueNode pValue)
+    {
+        RequireFields(pRecord, pValue);
+        Dictionary<string, DataValue> lFields = new Dictionary<string, DataValue>(StringComparer.Ordinal);
+        foreach (KeyValuePair<string, ValueNode> lField in pValue.Fields)
+        {
+            RecordField lDefinition = pRecord.Fields.FirstOrDefault(pField => pField.Name == lField.Key)
+                ?? throw new XcgfDataException($"Record '{pRecord.Name}' has no field '{lField.Key}'.");
+            if (!lFields.TryAdd(lField.Key, ParseValue(lDefinition.DataType, lField.Value)))
+            {
+                throw new XcgfDataException($"Field '{lField.Key}' of record '{pRecord.Name}' is given twice.");
+            }
+        }
+
+        return new RecordValue(lFields);
+    }
+
+    private RecordValue ParseVariant(VariantRecordDataType pVariant, ValueNode pValue)
+    {
+        RequireFields(pVariant, pValue);
+        ValueNode lDiscriminantNode = pValue.Fields.FirstOrDefault(pField => pField.Key == pVariant.Discriminant).Value
+            ?? throw new XcgfDataException($"Variant record '{pVariant.Name}' needs its discriminant '{pVariant.Discriminant}'.");
+        EnumValue lDiscriminant = (EnumValue)ParseValue(pVariant.DiscriminantType, lDiscriminantNode);
+        VariantAlternative? lAlternative = pVariant.Alternatives.FirstOrDefault(pAlternative =>
+                pAlternative.Enumerators.Split(',', StringSplitOptions.TrimEntries).Contains(lDiscriminant.Name))
+            ?? pVariant.Alternatives.FirstOrDefault(pAlternative => pAlternative.Enumerators.Trim() == "HLAother");
+        Dictionary<string, DataValue> lFields = new Dictionary<string, DataValue>(StringComparer.Ordinal) { [pVariant.Discriminant] = lDiscriminant };
+        foreach (KeyValuePair<string, ValueNode> lField in pValue.Fields.Where(pField => pField.Key != pVariant.Discriminant))
+        {
+            if (lAlternative?.Name != lField.Key || lAlternative.DataType is null)
+            {
+                throw new XcgfDataException($"Field '{lField.Key}' is not the alternative selected by '{lDiscriminant.Name}' in '{pVariant.Name}'.");
+            }
+
+            lFields[lField.Key] = ParseValue(lAlternative.DataType, lField.Value);
+        }
+
+        return new RecordValue(lFields);
+    }
+
+    private static void CheckCardinality(ArrayDataType pArray, int pCount)
+    {
+        string[] lBounds = pArray.Cardinality.Split("..");
+        if (!int.TryParse(lBounds[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int lMin))
+        {
+            return;
+        }
+
+        int lMax = lBounds.Length == 2 && int.TryParse(lBounds[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int lUpper) ? lUpper : lBounds.Length == 2 ? int.MaxValue : lMin;
+        if (pCount < lMin || pCount > lMax)
+        {
+            throw new XcgfDataException($"Array '{pArray.Name}' holds {pCount} items; its cardinality is {pArray.Cardinality}.");
+        }
+    }
+
+    private static void RequireFields(DataTypeDefinition pType, ValueNode pValue)
+    {
+        if (pValue.Items.Count > 0 || pValue.Text.Length > 0)
+        {
+            throw new XcgfDataException($"A value of record type '{pType.Name}' must be written as Field children.");
+        }
+    }
+
+    private static string RequireText(DataTypeDefinition pType, ValueNode pValue)
+    {
+        return pValue.IsText ? pValue.Text : throw new XcgfDataException($"A value of type '{pType.Name}' is written as text, without Field or Item children.");
     }
 
     private static DataValue ParseBasic(BasicDataType pType, string pText)

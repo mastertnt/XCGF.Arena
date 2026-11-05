@@ -107,7 +107,7 @@ public sealed class TwoFightersScenario : IScenario
         }
 
         ParameterValues lWeaponData = lWeapon.GetComponent<EquipmentData>().Technological;
-        double lRange = SensorSystem.ComputeGeometry(pContext.Carrier.GetComponent<Kinematic>(), lTarget.GetComponent<Kinematic>()).Range;
+        double lRange = SensorSystem.ComputeGeometry(lTarget, pContext.Carrier.GetComponent<Kinematic>(), lTarget.GetComponent<Kinematic>()).Range;
         return lRange >= (lWeaponData.GetNumber("MinRange") ?? 0) && lRange <= (lWeaponData.GetNumber("MaxRange") ?? double.MaxValue);
     }
 }

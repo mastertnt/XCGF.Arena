@@ -8,7 +8,7 @@ namespace XCGF.Arena.Data;
 /// <param name="Description">What the item means.</param>
 /// <param name="DefaultValue">Default value as written in the library, if any.</param>
 /// <param name="Constraints">Constraints on its value.</param>
-public record DataItem(string Name, string DataType, string? Description, string? DefaultValue, IReadOnlyList<DataConstraint> Constraints)
+public record DataItem(string Name, string DataType, string? Description, ValueNode? DefaultValue, IReadOnlyList<DataConstraint> Constraints)
 {
     /// <summary>
     /// Builds the item obtained when another declaration completes or overrides this one.
@@ -62,7 +62,7 @@ public sealed record TaskParameter(
     string Name,
     string DataType,
     string? Description,
-    string? DefaultValue,
+    ValueNode? DefaultValue,
     IReadOnlyList<DataConstraint> Constraints,
     bool Required,
     ParameterDirection Direction)

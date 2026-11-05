@@ -8,9 +8,12 @@ namespace XCGF.Arena.Systems;
 /// Evaluates the sensor equipments at each step and writes what each one sees into its <see cref="SensorDetections"/>.
 /// </summary>
 /// <remarks>
-/// A sensor is an equipment whose type has a registered <see cref="ISensorModel"/>; <see cref="RadarModel"/> is
-/// registered for the Radar type. The candidate targets are all the entities with <see cref="EntityIdentity"/> and
-/// <see cref="Kinematic"/>, except the carrier of the sensor.
+/// A sensor is an equipment whose type has a registered <see cref="ISensorModel"/>. The built-in models follow the
+/// sensor definitions of the XCGF.Data standard library: <see cref="SensorModel"/> (Sensor), <see cref="RadarModel"/>
+/// (Radar), <see cref="EsmModel"/> (ESM), <see cref="InfraredModel"/> (Infrared) and <see cref="VisualModel"/> (Visual).
+/// The candidate targets are all the entities with <see cref="EntityIdentity"/> and <see cref="Kinematic"/>, except
+/// the carrier of the sensor. A sensor scans again once its ScanInterval has elapsed since its last scan (every step
+/// when unset) and keeps its MaxContacts nearest detections.
 /// </remarks>
 public sealed class SensorSystem : QuerySystem<Equipment, EquipmentData>
 {
@@ -21,7 +24,11 @@ public sealed class SensorSystem : QuerySystem<Equipment, EquipmentData>
     /// </summary>
     public SensorSystem()
     {
+        RegisterModel(SensorModel.SensorType, new SensorModel());
         RegisterModel(RadarModel.SensorType, new RadarModel());
+        RegisterModel(EsmModel.SensorType, new EsmModel());
+        RegisterModel(InfraredModel.SensorType, new InfraredModel());
+        RegisterModel(VisualModel.SensorType, new VisualModel());
     }
 
     /// <summary>
@@ -39,16 +46,19 @@ public sealed class SensorSystem : QuerySystem<Equipment, EquipmentData>
     /// <summary>
     /// Computes the geometry of a target as seen from a carrier.
     /// </summary>
+    /// <param name="pTarget">The target entity.</param>
     /// <param name="pCarrier">Kinematic state of the carrier.</param>
-    /// <param name="pTarget">Kinematic state of the target.</param>
+    /// <param name="pTargetKinematic">Kinematic state of the target.</param>
     /// <returns>The geometry.</returns>
-    public static SensorGeometry ComputeGeometry(in Kinematic pCarrier, in Kinematic pTarget)
+    public static SensorGeometry ComputeGeometry(Entity pTarget, in Kinematic pCarrier, in Kinematic pTargetKinematic)
     {
-        double lHorizontal = GeoMath.Distance(pCarrier.Position, pTarget.Position);
-        double lVertical = pTarget.Position.Altitude - pCarrier.Position.Altitude;
-        double lBearing = GeoMath.Bearing(pCarrier.Position, pTarget.Position);
+        double lHorizontal = GeoMath.Distance(pCarrier.Position, pTargetKinematic.Position);
+        double lVertical = pTargetKinematic.Position.Altitude - pCarrier.Position.Altitude;
+        double lBearing = GeoMath.Bearing(pCarrier.Position, pTargetKinematic.Position);
         double lRelative = GeoMath.NormalizeHeading(lBearing - pCarrier.Orientation.Heading + 180) - 180;
-        return new SensorGeometry(pCarrier, pTarget, Math.Sqrt((lHorizontal * lHorizontal) + (lVertical * lVertical)), lBearing, lRelative);
+        double lElevation = Math.Atan2(lVertical, lHorizontal) * 180 / Math.PI;
+        double lRange = Math.Sqrt((lHorizontal * lHorizontal) + (lVertical * lVertical));
+        return new SensorGeometry(pTarget, pCarrier, pTargetKinematic, lRange, lBearing, lRelative, lElevation);
     }
 
     /// <inheritdoc/>
@@ -66,9 +76,16 @@ public sealed class SensorSystem : QuerySystem<Equipment, EquipmentData>
                 continue;
             }
 
+            EquipmentData lData = lSensor.GetComponent<EquipmentData>();
+            if (lSensor.TryGetComponent(out SensorDetections lPrevious)
+                && lData.Technological.GetNumber("ScanInterval") is { } lInterval
+                && (lNow - lPrevious.Time).TotalSeconds < lInterval - 1e-9)
+            {
+                continue;
+            }
+
             Entity lCarrier = lSensor.Parent;
             List<Detection> lDetections = new List<Detection>();
-            EquipmentData lData = lSensor.GetComponent<EquipmentData>();
             if (!lCarrier.IsNull && lCarrier.TryGetComponent(out Kinematic lCarrierKinematic) && lModel.IsActive(lData))
             {
                 foreach (Entity lTarget in lTargets)
@@ -78,12 +95,18 @@ public sealed class SensorSystem : QuerySystem<Equipment, EquipmentData>
                         continue;
                     }
 
-                    SensorGeometry lGeometry = ComputeGeometry(lCarrierKinematic, lTarget.GetComponent<Kinematic>());
+                    SensorGeometry lGeometry = ComputeGeometry(lTarget, lCarrierKinematic, lTarget.GetComponent<Kinematic>());
                     if (lModel.Detects(lData, lGeometry))
                     {
                         lDetections.Add(new Detection(lTarget, lGeometry.Range, lGeometry.Bearing, lGeometry.RelativeBearing));
                     }
                 }
+            }
+
+            if (lData.Technological.GetNumber("MaxContacts") is { } lMax && lDetections.Count > lMax)
+            {
+                lDetections.Sort((pLeft, pRight) => pLeft.Range.CompareTo(pRight.Range));
+                lDetections.RemoveRange((int)Math.Max(0, lMax), lDetections.Count - (int)Math.Max(0, lMax));
             }
 
             SensorDetections lResult = new SensorDetections(lDetections, lNow);

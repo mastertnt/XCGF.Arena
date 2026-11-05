@@ -75,7 +75,7 @@ public sealed class TaskSystem : QuerySystem<AssignedTasks>
         foreach (GroupedTaskParameter lGrouped in lDefinition.Parameters)
         {
             TaskParameter lParameter = lGrouped.Parameter;
-            string? lDefault = lCapability.Defaults.FirstOrDefault(pItem => pItem.Name == lParameter.Name)?.DefaultValue ?? lParameter.DefaultValue;
+            ValueNode? lDefault = lCapability.Defaults.FirstOrDefault(pItem => pItem.Name == lParameter.Name)?.DefaultValue ?? lParameter.DefaultValue;
             lParameters[lParameter.Name] = lDefault is null ? null : mLibrary.ParseValue(lParameter.DataType, lDefault);
         }
 

@@ -33,10 +33,13 @@ public class XcgfDataLoaderTests
     {
         ArchetypeLibrary lLibrary = TestLibrary.Example;
 
-        Assert.Equal(20, lLibrary.DataTypes.Count);
-        Assert.Equal(new[] { "AirToAirMissile", "FighterRadar", "FixedWingKinematic", "Kinematic" }, lLibrary.EquipmentDefinitions.Keys.Order());
+        Assert.Equal(50, lLibrary.DataTypes.Count);
+        Assert.Equal(27, lLibrary.EquipmentDefinitions.Count);
+        Assert.Superset(
+            new HashSet<string> { "Kinematic", "FixedWingKinematic", "Sensor", "Radar", "ESM", "InfraredSensor", "VisualSensor", "Signature", "FighterRadar" },
+            lLibrary.EquipmentDefinitions.Keys.ToHashSet());
         Assert.Equal(new[] { "ChangeFormation", "FireOnTarget", "FollowFlightPlan", "MoveTo" }, lLibrary.Tasks.Keys.Order());
-        Assert.Equal(new[] { "Fighter" }, lLibrary.Entities.Keys);
+        Assert.Equal(new[] { "F35A", "Fighter", "Rafale" }, lLibrary.Entities.Keys.Order());
         Assert.Equal(new[] { "FighterPatrol" }, lLibrary.Units.Keys);
         Assert.Empty(lLibrary.Validate());
     }
@@ -65,13 +68,13 @@ public class XcgfDataLoaderTests
         Assert.Equal("1.2.71.1.0.0.0", lFighter.DisType);
         Assert.Equal(EntityEnvironment.Air, lFighter.Environment);
         Assert.Equal("Aircraft/Fighter", lFighter.Folder);
-        Assert.Equal("FixedWingKinematic", lFighter.Kinematic.Definition);
-        Assert.Equal("250", Assert.Single(lFighter.Kinematic.InitializationData).DefaultValue);
-        Assert.Equal(new[] { "Radar", "Missile_1", "Missile_2" }, lFighter.Equipments.Select(pEquipment => pEquipment.Name));
+        Assert.Equal("FighterKinematic", lFighter.Kinematic.Definition);
+        Assert.Equal("250", Assert.Single(lFighter.Kinematic.InitializationData).DefaultValue!.Text);
+        Assert.Equal(new[] { "Signature", "Radar", "RWR", "IRST", "Missile_1", "Missile_2" }, lFighter.Equipments.Select(pEquipment => pEquipment.Name));
         Assert.Equal(new[] { "MoveTo", "FireOnTarget", "FollowFlightPlan" }, lFighter.Tasks.Select(pTask => pTask.Task));
         Assert.Equal(new[] { "Leader", "Wingman" }, lPatrol.Members.Select(pMember => pMember.Role));
         Assert.All(lPatrol.Members, pMember => Assert.Equal(("Fighter", false, 1), (pMember.Archetype, pMember.IsUnit, pMember.Count)));
-        Assert.Equal("Line", lPatrol.Tasks.Single(pTask => pTask.Task == "ChangeFormation").Parameters.Single().DefaultValue);
+        Assert.Equal("Line", lPatrol.Tasks.Single(pTask => pTask.Task == "ChangeFormation").Parameters.Single().DefaultValue!.Text);
     }
 
     [Fact]
@@ -99,19 +102,23 @@ public class XcgfDataLoaderTests
     public void Load_ExampleLibrary_ReadsConstraints()
     {
         EquipmentDefinition lKinematic = TestLibrary.Example.EquipmentDefinitions["FixedWingKinematic"];
-        EquipmentDefinition lRadar = TestLibrary.Example.EquipmentDefinitions["FighterRadar"];
+        EquipmentDefinition lSensor = TestLibrary.Example.EquipmentDefinitions["Sensor"];
 
         Assert.True(lKinematic.IsKinematic);
         Assert.Equal("Kinematic", lKinematic.Base);
         Assert.Equal(
             new DataConstraint[] { new BoundConstraint(BoundKind.Min, null, "StallSpeed", true), new BoundConstraint(BoundKind.Max, null, "MaxSpeed", true) },
-            lKinematic.InitializationData.Single().Constraints);
-        Assert.Equal(new BoundConstraint(BoundKind.Min, "0", null, false), lRadar.TechnologicalData[0].Constraints.Single());
-        Assert.Equal(new[] { "Off", "Search", "Track" }, Assert.IsType<ListOfValuesConstraint>(lRadar.InitializationData[0].Constraints.Single()).Values);
+            lKinematic.InitializationData.Single(pItem => pItem.Name == "InitialSpeed").Constraints);
+        Assert.Equal(
+            new DataConstraint[] { new BoundConstraint(BoundKind.Min, "0", null, true), new BoundConstraint(BoundKind.Max, null, "MaxRange", true) },
+            lSensor.TechnologicalData.Single(pItem => pItem.Name == "MinRange").Constraints);
+        Assert.Equal(new BoundConstraint(BoundKind.Min, "0", null, false), lSensor.TechnologicalData.Single(pItem => pItem.Name == "MaxRange").Constraints.Single());
+        Assert.Equal("Radar", TestLibrary.Example.EquipmentDefinitions["FighterRadar"].Base);
     }
 
     [Theory]
-    [InlineData("types.xml")]
+    [InlineData("../XCGF.Data/library/types/core.xml")]
+    [InlineData("../XCGF.Data/library/equipments/sensors.xml")]
     [InlineData("equipments.xml")]
     [InlineData("tasks.xml")]
     [InlineData("entities/fighter.xml")]
@@ -129,7 +136,12 @@ public class XcgfDataLoaderTests
     [Fact]
     public void Load_SeveralFiles_AssemblesThem()
     {
-        string[] lFiles = { "types.xml", "equipments.xml", "tasks.xml", "entities/fighter.xml", "units.xml" };
+        string[] lFiles =
+        {
+            "../XCGF.Data/library/types/core.xml", "../XCGF.Data/library/types/equipment.xml",
+            "../XCGF.Data/library/equipments/kinematics.xml", "../XCGF.Data/library/equipments/signatures.xml",
+            "../XCGF.Data/library/equipments/sensors.xml", "equipments.xml", "tasks.xml", "entities/fighter.xml", "units.xml",
+        };
 
         ArchetypeLibrary lLibrary = XcgfDataLoader.Load(lFiles.Select(TestLibrary.PathOf).ToArray());
 

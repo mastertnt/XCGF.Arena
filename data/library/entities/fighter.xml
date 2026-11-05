@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Entity xmlns="urn:xcgf:data:1.0" name="Fighter" disType="1.2.71.1.0.0.0" environment="Air" folder="Aircraft/Fighter">
+  <Description>Fighter aircraft with a signature, a radar, a radar warning receiver, an IRST and two air-to-air missiles. DIS type 1.2.71.1.0.0.0: air platform, France, fighter (illustrative codes).</Description>
+  <Kinematic definition="FighterKinematic">
+    <Description>Fighter kinematic. Position and orientation come from the root kinematic; the default initial speed is raised to 250 m/s.</Description>
+    <InitializationData>
+      <Parameter name="InitialSpeed" dataType="SpeedMetersPerSecond"><DefaultValue>250</DefaultValue></Parameter>
+    </InitializationData>
+  </Kinematic>
+  <Equipments>
+    <Equipment name="Signature" definition="FighterSignature"/>
+    <Equipment name="Radar" definition="FighterRadar"/>
+    <Equipment name="RWR" definition="RadarWarningReceiver"/>
+    <Equipment name="IRST" definition="FighterIRST"/>
+    <Equipment name="Missile_1" definition="AirToAirMissile"/>
+    <Equipment name="Missile_2" definition="AirToAirMissile"/>
+  </Equipments>
+  <Tasks>
+    <TaskRef task="MoveTo"/>
+    <TaskRef task="FireOnTarget"/>
+    <TaskRef task="FollowFlightPlan"/>
+  </Tasks>
+</Entity>
