@@ -112,13 +112,17 @@ Entity radar = fighter.FindEquipment("Radar");
 A blueprint is a graph of nodes attached to an entity, in the manner of visual scripting:
 
 - an **Event** node subscribes when the graph is attached, and starts a **fiber** at each firing (`OnStart`,
-  `OnZoneEnter`). Its `RetriggerPolicy` tells what a firing does while a fiber of the event runs: `Parallel`, `Ignore`,
+  `OnZoneEnter`, `OnTaskEnded`). Its `RetriggerPolicy` tells what a firing does while a fiber of the event runs: `Parallel`, `Ignore`,
   `Restart` or `Once`;
 - an **Action** node runs in a fiber, through exec links. It changes the world (`SetSpeed`, `SetHeading`,
   `SetEquipmentParameter`, `AssignTask`, `RaiseTaskEvent`, `LogMessage`), waits (`Delay`, latent) or chooses an exec
-  output (`Branch`);
+  output (`Branch`). `MoveTo`, `FollowCourse` and `HoldPosition` assign the movement task of the same name with
+  their parameters as inputs, then wait for its end and follow the exec output of its outcome (`TaskNode.SuccessPin`
+  or `FailurePin`), its outcome on the data output;
 - a **Pure** node computes values on demand for the data inputs, without changing the world (`Self`, `GetHeading`,
-  `GetSpeed`, `GetAltitude`, `Add`, `Subtract`, `AddHeading`, `GreaterThan`).
+  `GetSpeed`, `GetAltitude`, `GetPosition`, `MakePosition`, `OffsetPosition`, `Add`, `Subtract`, `AddHeading`,
+  `GreaterThan`). Positions travel on `Position` pins as `GeoPosition`, courses on `Course` pins as lists of
+  `CourseWaypoint`.
 
 A fiber is a Friflo entity (`FiberState`, `FiberWait`, `FiberReady`): the graph is interpreted, its program counter
 is the id of the current node. `ArenaSimulation` runs `ZoneDetectionSystem` then `BlueprintSystem` after the sensors,
