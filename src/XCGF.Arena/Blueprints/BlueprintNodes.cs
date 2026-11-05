@@ -21,7 +21,20 @@ public enum PinType
 
     /// <summary>A <see cref="string"/>.</summary>
     Text,
+
+    /// <summary>A geographic position, as a <see cref="Components.GeoPosition"/>.</summary>
+    Position,
+
+    /// <summary>A list of waypoints, as an <see cref="IReadOnlyList{T}"/> of <see cref="CourseWaypoint"/>.</summary>
+    Course,
 }
+
+/// <summary>
+/// Waypoint of a course.
+/// </summary>
+/// <param name="Position">Position of the waypoint, altitude included.</param>
+/// <param name="Speed">Speed to hold on the leg ending at it, in metres per second, or null for the task's.</param>
+public readonly record struct CourseWaypoint(Components.GeoPosition Position, double? Speed = null);
 
 /// <summary>
 /// Data pin of a node. Exec pins are implicit: an action has one exec input, and as many exec outputs as its

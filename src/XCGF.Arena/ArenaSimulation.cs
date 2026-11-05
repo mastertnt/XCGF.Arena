@@ -32,6 +32,7 @@ public sealed class ArenaSimulation
         Systems.Add(Kinematics);
         Systems.Add(Sensors);
         Systems.Add(new ZoneDetectionSystem(Blueprints));
+        Systems.Add(new TaskEndDetectionSystem(Blueprints));
         Systems.Add(new BlueprintSystem(Blueprints));
     }
 
@@ -72,7 +73,7 @@ public sealed class ArenaSimulation
 
     /// <summary>
     /// Gets the systems, run in order at each step: tasks, kinematics, then sensors, so that sensors see the positions
-    /// reached during the step; then zone detection and blueprints, so that the graphs react to the events of the step.
+    /// reached during the step; then zone and task end detection and blueprints, so that the graphs react to the events of the step.
     /// More systems can be added.
     /// </summary>
     public SystemRoot Systems { get; }
