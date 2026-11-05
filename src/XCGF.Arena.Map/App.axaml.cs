@@ -20,7 +20,8 @@ public sealed class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime lDesktop)
         {
-            lDesktop.MainWindow = new MainWindow(Program.CreatePlayer(lDesktop.Args ?? Array.Empty<string>()));
+            string[] lArguments = lDesktop.Args ?? Array.Empty<string>();
+            lDesktop.MainWindow = new MainWindow(Program.LoadLibrary(lArguments), Program.SelectScenario(lArguments));
         }
 
         base.OnFrameworkInitializationCompleted();

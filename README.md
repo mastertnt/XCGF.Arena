@@ -38,13 +38,22 @@ dotnet run --project src/XCGF.Arena.Console -- --realtime --duration 700 --dis 1
 ### Map
 
 ```bash
-dotnet run --project src/XCGF.Arena.Map
+dotnet run --project src/XCGF.Arena.Map [-- --scenario scripted|blueprint]
 ```
 
 The map host shows the same scenario on an OpenStreetMap background (tiles downloaded at run time), with the entities
 coloured by side and pointing to their heading. Play starts or resumes the simulation, Pause freezes it, Stop sets the
 scenario up again at its start; the speed sets the simulated seconds per wall-clock second (x1, x10, x60). It runs on
 Windows, Linux and macOS. The playback logic is `ArenaPlayer` in the library, so other hosts can reuse it.
+
+The scenario list (or `--scenario`) chooses between the scripted two-fighter scenario and
+`BlueprintFightersScenario`, where both fighters are driven by blueprint graphs only, around an engagement zone drawn
+on the map:
+
+- BLUE1 (`blue-intercept`): radar off, `MoveTo` its patrol point at 280 m/s, `HoldPosition` 120 s, then `MoveTo` back
+  to its start at Cruise; `OnZoneEnter` (once) turns its radar to Search;
+- RED1 (`red-patrol`): radar off, `FollowCourse` on a looping racetrack whose western leg crosses the zone;
+  each `OnZoneEnter` turns its radar to Search for 60 s, then off again.
 
 ## XCGF.Data components on Friflo.Engine.ECS
 
@@ -59,7 +68,7 @@ the archetypes described by [XCGF.Data](https://github.com/mastertnt/XCGF.Data).
 | `XCGF.Arena.Spawning` | `ArchetypeFactory`: spawns entities and units into an `EntityStore`. |
 | `XCGF.Arena.Systems` | `KinematicSystem`, `TaskSystem`, `SensorSystem` (Friflo `QuerySystem`s), the behaviours of the standard movement tasks (`MoveTo`, `FollowCourse`, `HoldPosition`) and the sensor models. |
 | `XCGF.Arena.Dis` | `DisSystem`: entity states for DIS (geocentric location, velocity and orientation, entity type from `disType`), sent to an `IDisPublisher`; `UdpDisPublisher` encodes them as DIS 7 Entity State PDUs with [OpenDisNet](https://github.com/RejectKid/OpenDisNet). |
-| `XCGF.Arena.Scenarios` | Scripted scenarios (`IScenario`, `TwoFightersScenario`) and `ArenaJournal`, which logs task transitions and radar contacts. |
+| `XCGF.Arena.Scenarios` | Scenarios (`IScenario`, scripted `TwoFightersScenario`, blueprint-driven `BlueprintFightersScenario`) and `ArenaJournal`, which logs task transitions and radar contacts. |
 | `XCGF.Arena.Blueprints` | Blueprint graphs (Event / Action / Pure nodes) run as fibers by `BlueprintRuntime` and `BlueprintSystem`; `CircularZone` and `ZoneDetectionSystem`; standard nodes in `XCGF.Arena.Blueprints.Nodes`. |
 | `XCGF.Arena` | `ArenaSimulation`: store, factory, systems and simulation clock wired together. `ArenaRunner`: loads a library, plays a scenario, writes the journal. |
 
