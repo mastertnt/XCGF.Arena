@@ -6,7 +6,7 @@
 XCGF.Arena.slnx
 src/XCGF.Arena/                 Class library
 src/XCGF.Arena.Console/         Console host that runs the library
-src/XCGF.Arena.Map/             Desktop host (Avalonia + Mapsui): map with play, pause and stop
+src/XCGF.Arena.Map/             Desktop host (Avalonia + Mapsui): map with play, pause and stop, blueprint graph viewer
 tests/XCGF.Arena.Tests/         xUnit tests
 data/library/                   Arena library: the scenario archetypes (fighters, tasks, patrol) on top of the
                                 XCGF.Data standard library
@@ -54,6 +54,13 @@ on the map:
   to its start at Cruise; `OnZoneEnter` (once) turns its radar to Search;
 - RED1 (`red-patrol`): radar off, `FollowCourse` on a looping racetrack whose western leg crosses the zone;
   each `OnZoneEnter` turns its radar to Search for 60 s, then off again.
+
+When the scenario uses blueprints, a panel beside the map shows the graph of the entity chosen in its list, drawn with
+[NodeEditorAvalonia](https://github.com/wieslawsoltes/NodeEditor): event, action, latent and pure nodes coloured by
+kind, pins and links coloured by type (exec in white), and constants on the unlinked inputs. While the scenario runs, a
+halo flashes on each node that just ran and a badge marks the nodes where a fiber waits (with the time left on a
+delay); the log of the blueprint runtime is listed below. Graphs without an editor `Layout` are laid out automatically:
+one band per event, its exec chain from left to right. The wheel zooms, the middle button pans, "Cadrer" fits the graph.
 
 ## XCGF.Data components on Friflo.Engine.ECS
 
