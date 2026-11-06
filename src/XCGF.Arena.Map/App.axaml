@@ -1,8 +1,66 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:bp="using:XCGF.Arena.Map.Blueprints"
+             xmlns:editor="using:NodeEditor.Controls"
              x:Class="XCGF.Arena.Map.App"
              RequestedThemeVariant="Default">
+
+  <!-- Content of a blueprint node: coloured header, rows of pins, badge of the waiting fibers, execution halo -->
+  <Application.DataTemplates>
+    <DataTemplate DataType="bp:NodeContent">
+      <Panel>
+        <Border Margin="-4" CornerRadius="10" BorderBrush="White" BorderThickness="3"
+                Opacity="{Binding Flash}" IsHitTestVisible="False" />
+
+        <Border CornerRadius="7" Background="#2C2D33" ClipToBounds="True"
+                BorderBrush="{Binding BorderBrush}" BorderThickness="2">
+          <DockPanel>
+            <Border DockPanel.Dock="Top" Height="22" Background="{Binding HeaderBrush}">
+              <TextBlock Text="{Binding Title}" Margin="8,0" VerticalAlignment="Center"
+                         FontSize="13" FontWeight="SemiBold" Foreground="WhiteSmoke" />
+            </Border>
+            <ItemsControl ItemsSource="{Binding Rows}" Margin="0,4,0,0">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="bp:PinRowContent">
+                  <Grid Height="19" ColumnDefinitions="*,Auto" Margin="12,0">
+                    <TextBlock Text="{Binding Left}" FontSize="11.5" Foreground="#A8AAB2"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="1" Text="{Binding Right}" FontSize="11.5"
+                               Foreground="#A8AAB2" VerticalAlignment="Center" Margin="6,0,0,0" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </DockPanel>
+        </Border>
+
+        <Border IsVisible="{Binding IsWaiting}" Background="#F2C14E" CornerRadius="5"
+                Padding="6,2" Margin="0,-26,0,0"
+                HorizontalAlignment="Left" VerticalAlignment="Top" IsHitTestVisible="False">
+          <TextBlock Text="{Binding Badge}" Foreground="Black" FontSize="11.5" FontWeight="SemiBold" />
+        </Border>
+      </Panel>
+    </DataTemplate>
+  </Application.DataTemplates>
+
   <Application.Styles>
     <FluentTheme />
+    <StyleInclude Source="avares://NodeEditorAvalonia/Themes/NodeEditorTheme.axaml" />
+
+    <!-- Pins coloured by type: the name of a pin is "exec" or its type -->
+    <Style Selector="editor|Pin /template/ Ellipse#PART_Pin">
+      <Setter Property="Fill"
+              Value="{ReflectionBinding Id, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static bp:PinBrushes.Instance}}" />
+      <Setter Property="Stroke" Value="#1E1F24" />
+      <Setter Property="StrokeThickness" Value="1.5" />
+    </Style>
+
+    <!-- Links: exec in white, data by type, from the pin they start at (an unnamed link shows no label) -->
+    <Style Selector="editor|Connector">
+      <Setter Property="Stroke"
+              Value="{ReflectionBinding ConnectorSource.Start.Name, RelativeSource={RelativeSource Self}, Converter={x:Static bp:PinBrushes.Instance}}" />
+      <Setter Property="Fill" Value="Transparent" />
+      <Setter Property="StrokeThickness" Value="2.5" />
+    </Style>
   </Application.Styles>
 </Application>
